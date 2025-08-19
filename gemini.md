@@ -7,7 +7,7 @@ This document outlines the development plan and specifications for the Pet Love 
 
 ### 1.1. Core Technologies
 
-- **Framework**: React Native 0.74+
+- **Framework**: Expo (React Native) 0.74+
 - **Language**: TypeScript 5.3+
 - **UI**: React Native Core Components with a custom design system.
 - **State Management**: Redux Toolkit + RTK Query
