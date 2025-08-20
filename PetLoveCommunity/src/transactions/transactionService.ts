@@ -31,7 +31,22 @@ class TransactionService {
     // TODO: Add logic to process the transaction queue
     // This should be called when the app comes online
   }
+
+  public getQueue(): Transaction[] {
+    return this.queue;
+  }
 }
+
+// Utility functions for enterprise features
+export const generateTransactionId = (): string => {
+  return `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export const generateIdempotencyKey = (): string => {
+  return `idem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+export { TransactionService };
 
 const transactionService = new TransactionService();
 export default transactionService;

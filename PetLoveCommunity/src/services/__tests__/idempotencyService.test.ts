@@ -1,4 +1,4 @@
-import idempotencyService from '../idempotencyService';
+import { IdempotencyService } from '../idempotencyService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -13,7 +13,7 @@ describe('idempotencyService', () => {
 
   it('should return true if an ID has been processed', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(['test-id']));
-    const service = new (idempotencyService as any)();
+    const service = new IdempotencyService();
     await service.loadProcessedIds();
     const isProcessed = await service.isProcessed('test-id');
     expect(isProcessed).toBe(true);
@@ -21,7 +21,7 @@ describe('idempotencyService', () => {
 
   it('should return false if an ID has not been processed', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify([]));
-    const service = new (idempotencyService as any)();
+    const service = new IdempotencyService();
     await service.loadProcessedIds();
     const isProcessed = await service.isProcessed('test-id');
     expect(isProcessed).toBe(false);
@@ -29,7 +29,7 @@ describe('idempotencyService', () => {
 
   it('should mark an ID as processed', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify([]));
-    const service = new (idempotencyService as any)();
+    const service = new IdempotencyService();
     await service.loadProcessedIds();
     await service.markAsProcessed('test-id');
     const isProcessed = await service.isProcessed('test-id');

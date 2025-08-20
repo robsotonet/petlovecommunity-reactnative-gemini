@@ -19,5 +19,7 @@ class AppStateService {
   }
 }
 
+export { AppStateService };
+
 const appStateService = new AppStateService();
 export default appStateService;

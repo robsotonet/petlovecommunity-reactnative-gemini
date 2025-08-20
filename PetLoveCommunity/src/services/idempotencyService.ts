@@ -26,5 +26,7 @@ class IdempotencyService {
   }
 }
 
+export { IdempotencyService };
+
 const idempotencyService = new IdempotencyService();
 export default idempotencyService;

@@ -1,3 +1,4 @@
+import { AppStateService } from '../appStateService';
 import appStateService from '../appStateService';
 import { AppState } from 'react-native';
 
@@ -14,7 +15,7 @@ describe('appStateService', () => {
   });
 
   it('should update the app state on change', () => {
-    const service = new (appStateService as any)();
+    const service = new AppStateService();
     const listener = (AppState.addEventListener as jest.Mock).mock.calls[0][1];
     listener('background');
     expect(service.getAppState()).toBe('background');

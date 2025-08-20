@@ -12,6 +12,11 @@ jest.mock('react-native-uuid', () => ({
 }));
 
 describe('correlationIdService', () => {
+  beforeEach(() => {
+    // Reset the service instance's cached correlation ID
+    (correlationIdService as any).correlationId = null;
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
