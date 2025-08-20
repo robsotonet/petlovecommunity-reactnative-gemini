@@ -59,11 +59,11 @@ class TransactionService {
 
 // Utility functions for enterprise features
 export const generateTransactionId = (): string => {
-  return `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `txn_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
 export const generateIdempotencyKey = (): string => {
-  return `idem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `idem_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
 export { TransactionService };
