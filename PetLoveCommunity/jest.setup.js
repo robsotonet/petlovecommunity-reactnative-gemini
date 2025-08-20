@@ -116,10 +116,22 @@ jest.mock('@microsoft/signalr', () => ({
   },
 }));
 
-// Mock Redux Persist
+// Mock Redux Persist completely
 jest.mock('redux-persist', () => ({
-  persistStore: jest.fn(),
+  persistStore: jest.fn(() => ({
+    dispatch: jest.fn(),
+    subscribe: jest.fn(),
+    getState: jest.fn(),
+    replaceReducer: jest.fn(),
+  })),
   persistReducer: jest.fn().mockImplementation((config, reducer) => reducer),
+  createTransform: jest.fn(() => ({})),
+  FLUSH: 'persist/FLUSH',
+  REHYDRATE: 'persist/REHYDRATE',
+  PAUSE: 'persist/PAUSE',
+  PERSIST: 'persist/PERSIST',
+  PURGE: 'persist/PURGE',
+  REGISTER: 'persist/REGISTER',
 }));
 
 jest.mock('redux-persist/integration/react', () => ({

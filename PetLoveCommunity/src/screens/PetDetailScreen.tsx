@@ -19,6 +19,7 @@ import {
   useTrackPetViewMutation,
 } from '../services/petApi';
 import { useColors } from '../hooks/useColors';
+import { useAnalyticsTracker } from '../hooks/useAnalytics';
 import { Pet } from '../types/pet';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -45,24 +46,34 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
   const [removeFromFavorites, { isLoading: removingFavorite }] = useRemovePetFromFavoritesMutation();
   const [trackPetView] = useTrackPetViewMutation();
 
+  // Analytics hook
+  const { trackPetView: trackPetViewAnalytics, trackPetInteraction, isReady: analyticsReady } = useAnalyticsTracker();
+
   // Check if pet is favorited
   const isFavorited = favorites?.some(fav => fav.petId === petId) || false;
   const favoriteLoading = addingFavorite || removingFavorite;
 
   // Track pet view for analytics
   useEffect(() => {
-    if (pet) {
-      trackPetView({
-        petId: pet.id,
-        sessionId: 'session_123', // TODO: Get from session service
-        deviceId: 'device_123', // TODO: Get from device service
-        source: 'direct',
-      });
+    if (pet && analyticsReady) {
+      // Track with real analytics data
+      const analyticsData = trackPetViewAnalytics(pet.id, 'direct');
+      
+      if (analyticsData) {
+        // Send to API for server-side analytics
+        trackPetView(analyticsData);
+      }
     }
-  }, [pet, trackPetView]);
+  }, [pet, analyticsReady, trackPetViewAnalytics, trackPetView]);
 
   const handleFavoritePress = async () => {
     try {
+      // Track analytics for favorite/unfavorite interaction
+      if (analyticsReady) {
+        const action = isFavorited ? 'unfavorite' : 'favorite';
+        trackPetInteraction(petId, action);
+      }
+
       if (isFavorited) {
         await removeFromFavorites(petId).unwrap();
       } else {
@@ -79,6 +90,11 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
 
   const handleAdoptPress = () => {
     if (!pet) return;
+    
+    // Track analytics for adoption process start
+    if (analyticsReady) {
+      trackPetInteraction(petId, 'application_start');
+    }
     
     Alert.alert(
       'Start Adoption Process',
@@ -98,6 +114,11 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
 
   const handleContactShelter = () => {
     if (!pet) return;
+    
+    // Track analytics for shelter contact
+    if (analyticsReady) {
+      trackPetInteraction(petId, 'contact', { shelter: pet.shelter.name });
+    }
     
     Alert.alert(
       'Contact Shelter',

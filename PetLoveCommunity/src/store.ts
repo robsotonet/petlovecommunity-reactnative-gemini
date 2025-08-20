@@ -1,39 +1,15 @@
 // Pet Love Community - Enterprise Redux Store Configuration
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer, createTransform } from 'redux-persist';
+import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petApi } from './services/petApi';
 import counterReducer from './features/counter/counterSlice';
 
-// Transform to handle API cache persistence selectively
-const apiCacheTransform = createTransform(
-  // Transform state on its way to being serialized and persisted
-  (inboundState: any) => {
-    // Only persist certain API data to avoid large cache
-    const { queries, mutations, ...otherState } = inboundState;
-    return {
-      ...otherState,
-      queries: {}, // Don't persist query cache
-      mutations: {}, // Don't persist mutation cache
-    };
-  },
-  // Transform state being rehydrated
-  (outboundState: any) => {
-    return {
-      ...outboundState,
-      queries: {},
-      mutations: {},
-    };
-  },
-  { whitelist: ['petApi'] }
-);
-
-// Persist configuration
+// Persist configuration - simplified to avoid createTransform issues
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  transforms: [apiCacheTransform],
-  whitelist: ['counter'], // Only persist specific reducers
+  whitelist: ['counter'], // Only persist counter state
   blacklist: ['petApi'], // Don't persist API cache
 };
 
@@ -59,7 +35,7 @@ export const store = configureStore({
         ],
       },
     }).concat(petApi.middleware), // Add RTK Query middleware
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: __DEV__,
 });
 
 export const persistor = persistStore(store);

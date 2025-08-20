@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useGetFeaturedPetsQuery, useSearchPetsQuery } from '../services/petApi';
 import { useColors } from '../hooks/useColors';
+import { useAnalyticsTracker } from '../hooks/useAnalytics';
 import { Pet, PetSearchRequest } from '../types/pet';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -28,6 +29,9 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
     page: 1,
   });
   const [refreshing, setRefreshing] = useState(false);
+
+  // Analytics hook
+  const { trackScreenView, trackPetView, trackPetInteraction, isReady: analyticsReady } = useAnalyticsTracker();
 
   // Use featured pets by default, search pets when filters are applied
   const hasFilters = Boolean(
@@ -51,6 +55,16 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   const pets = hasFilters ? searchResults?.pets : featuredPets;
   const isLoading = hasFilters ? searchLoading : featuredLoading;
 
+  // Track screen view when component mounts
+  useEffect(() => {
+    if (analyticsReady) {
+      trackScreenView('PetListScreen', {
+        hasFilters,
+        petsCount: pets?.length || 0,
+      });
+    }
+  }, [analyticsReady, hasFilters, pets?.length, trackScreenView]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -64,7 +78,12 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
     }
   };
 
-  const navigateToPetDetail = (petId: string) => {
+  const navigateToPetDetail = (petId: string, source: 'search' | 'featured' = 'featured') => {
+    // Track analytics for pet selection from list
+    if (analyticsReady) {
+      trackPetView(petId, hasFilters ? 'search' : 'featured');
+    }
+
     navigation.navigate('PetDetail', { petId });
   };
 
@@ -114,7 +133,16 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
           <View style={styles.petActions}>
             <Button
               title="❤️ Adopt Me"
-              onPress={() => navigateToPetDetail(pet.id)}
+              onPress={() => {
+                // Track interaction before navigating
+                if (analyticsReady) {
+                  trackPetInteraction(pet.id, 'application_start', { 
+                    source: hasFilters ? 'search' : 'featured',
+                    fromList: true 
+                  });
+                }
+                navigateToPetDetail(pet.id);
+              }}
               type="primary"
               accessibilityLabel={`View adoption details for ${pet.name}`}
             />
