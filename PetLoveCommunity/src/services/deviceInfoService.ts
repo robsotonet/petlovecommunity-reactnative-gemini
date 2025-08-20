@@ -13,19 +13,52 @@ interface DeviceInfoData {
 
 class DeviceInfoService {
   private deviceInfo: DeviceInfoData | null = null;
+  private initializationPromise: Promise<DeviceInfoData> | null = null;
 
   public async getDeviceInfo(): Promise<DeviceInfoData> {
+    // Return cached data if available
     if (this.deviceInfo) {
       return this.deviceInfo;
     }
 
-    let storedInfo = await AsyncStorage.getItem(DEVICE_INFO_KEY);
-
-    if (storedInfo) {
-      this.deviceInfo = JSON.parse(storedInfo);
-      return this.deviceInfo as DeviceInfoData;
+    // Handle concurrent calls with singleton pattern
+    if (this.initializationPromise) {
+      return this.initializationPromise;
     }
 
+    // Create initialization promise for concurrent call handling
+    this.initializationPromise = this.initializeDeviceInfo();
+    
+    try {
+      const result = await this.initializationPromise;
+      return result;
+    } finally {
+      // Clear initialization promise once complete
+      this.initializationPromise = null;
+    }
+  }
+
+  private async initializeDeviceInfo(): Promise<DeviceInfoData> {
+    // Try to load from AsyncStorage with error handling
+    try {
+      const storedInfo = await AsyncStorage.getItem(DEVICE_INFO_KEY);
+      
+      if (storedInfo) {
+        try {
+          const parsed = JSON.parse(storedInfo);
+          this.deviceInfo = parsed;
+          return this.deviceInfo as DeviceInfoData;
+        } catch (parseError) {
+          // Handle corrupted JSON data gracefully by continuing to collect fresh data
+          console.warn('DeviceInfoService: Corrupted stored data, collecting fresh device info');
+        }
+      }
+    } catch (storageError) {
+      // Handle AsyncStorage read failures gracefully
+      console.warn('DeviceInfoService: Storage read failed, collecting fresh device info');
+    }
+
+    // Collect fresh device info
     const [uniqueId, deviceId, bundleId, systemVersion] = await Promise.all([
       DeviceInfo.getUniqueId(),
       DeviceInfo.getDeviceId(),
@@ -40,7 +73,14 @@ class DeviceInfoService {
       systemVersion,
     };
 
-    await AsyncStorage.setItem(DEVICE_INFO_KEY, JSON.stringify(newDeviceInfo));
+    // Try to store with error handling
+    try {
+      await AsyncStorage.setItem(DEVICE_INFO_KEY, JSON.stringify(newDeviceInfo));
+    } catch (storageError) {
+      // Handle storage write failures gracefully - still cache in memory
+      console.warn('DeviceInfoService: Storage write failed, using memory cache only');
+    }
+
     this.deviceInfo = newDeviceInfo;
     return this.deviceInfo;
   }

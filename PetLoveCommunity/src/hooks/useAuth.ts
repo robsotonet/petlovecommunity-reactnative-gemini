@@ -6,8 +6,13 @@ export const useAuth = () => {
 
   useEffect(() => {
     const checkLoginStatus = async () => {
-      const credentials = await authService.getCredentials();
-      setIsLoggedIn(!!credentials);
+      try {
+        const credentials = await authService.getCredentials();
+        setIsLoggedIn(!!credentials);
+      } catch (error) {
+        // Handle credential check failures gracefully - default to logged out
+        setIsLoggedIn(false);
+      }
     };
     checkLoginStatus();
   }, []);
