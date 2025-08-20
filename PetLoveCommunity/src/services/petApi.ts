@@ -12,7 +12,10 @@ import type {
   PetApiResponse,
   PetViewEvent,
   PetInteractionEvent,
+  PetStatusUpdate,
+  PetAvailabilityUpdate,
 } from '../types/pet';
+import type { AppDispatch } from '../store';
 
 export const petApi = createApi({
   reducerPath: 'petApi',
@@ -273,7 +276,7 @@ export const {
 } = petApi;
 
 // Real-time update handlers for SignalR integration
-export const handlePetStatusUpdate = (dispatch: any, update: any) => {
+export const handlePetStatusUpdate = (dispatch: AppDispatch, update: PetStatusUpdate) => {
   dispatch(
     petApi.util.updateQueryData('getPetById', update.petId, (draft) => {
       if (draft) {
@@ -289,7 +292,7 @@ export const handlePetStatusUpdate = (dispatch: any, update: any) => {
   );
 };
 
-export const handlePetAvailabilityUpdate = (dispatch: any, update: any) => {
+export const handlePetAvailabilityUpdate = (dispatch: AppDispatch, update: PetAvailabilityUpdate) => {
   dispatch(
     petApi.util.updateQueryData('getPetById', update.petId, (draft) => {
       if (draft) {

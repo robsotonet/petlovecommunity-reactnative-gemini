@@ -21,16 +21,13 @@ import {
 import { useColors } from '../hooks/useColors';
 import { useAnalyticsTracker } from '../hooks/useAnalytics';
 import { Pet } from '../types/pet';
+import type { PetDetailNavigationProp, PetDetailRouteProp } from '../types/navigation';
 import Button from '../components/Button';
 import Card from '../components/Card';
 
 interface PetDetailScreenProps {
-  route: {
-    params: {
-      petId: string;
-    };
-  };
-  navigation: any;
+  route: PetDetailRouteProp;
+  navigation: PetDetailNavigationProp;
 }
 
 const { width: screenWidth } = Dimensions.get('window');

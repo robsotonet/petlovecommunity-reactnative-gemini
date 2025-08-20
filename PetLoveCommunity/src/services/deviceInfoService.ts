@@ -26,10 +26,12 @@ class DeviceInfoService {
       return this.deviceInfo as DeviceInfoData;
     }
 
-    const uniqueId = await DeviceInfo.getUniqueId();
-    const deviceId = DeviceInfo.getDeviceId();
-    const bundleId = DeviceInfo.getBundleId();
-    const systemVersion = DeviceInfo.getSystemVersion();
+    const [uniqueId, deviceId, bundleId, systemVersion] = await Promise.all([
+      DeviceInfo.getUniqueId(),
+      DeviceInfo.getDeviceId(),
+      DeviceInfo.getBundleId(),
+      DeviceInfo.getSystemVersion(),
+    ]);
 
     const newDeviceInfo: DeviceInfoData = {
       uniqueId,
