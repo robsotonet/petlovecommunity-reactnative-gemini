@@ -86,12 +86,14 @@ export const petApi = createApi({
       async onQueryStarted({ petId }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           petApi.util.updateQueryData('getUserFavorites', undefined, (draft) => {
-            draft.push({
-              petId,
-              userId: '', // Will be filled by server response
-              favoritedAt: new Date().toISOString(),
-              notes: '',
-            });
+            if (Array.isArray(draft)) {
+              draft.push({
+                petId,
+                userId: '', // Will be filled by server response
+                favoritedAt: new Date().toISOString(),
+                notes: '',
+              });
+            }
           })
         );
         try {
@@ -112,7 +114,10 @@ export const petApi = createApi({
       async onQueryStarted(petId, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           petApi.util.updateQueryData('getUserFavorites', undefined, (draft) => {
-            return draft.filter((favorite) => favorite.petId !== petId);
+            if (Array.isArray(draft)) {
+              return draft.filter((favorite) => favorite.petId !== petId);
+            }
+            return draft;
           })
         );
         try {

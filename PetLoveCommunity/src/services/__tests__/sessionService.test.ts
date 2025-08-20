@@ -32,7 +32,7 @@ jest.mock('../../config/constants', () => ({
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 import { AppState } from 'react-native';
-import sessionService, { SessionData } from '../sessionService';
+import sessionService, { SessionService, SessionData } from '../sessionService';
 
 describe('SessionService', () => {
   beforeEach(async () => {
@@ -40,12 +40,15 @@ describe('SessionService', () => {
     jest.clearAllTimers();
     (uuid.v4 as jest.Mock).mockReturnValue('test-session-id');
     
-    // Clear session before each test
+    // Clear session before each test and wait for initialization
     await sessionService.clearSession();
+    await sessionService.waitForInitialization();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.clearAllTimers();
+    // Clean up any lingering sessions to prevent test pollution
+    await sessionService.clearSession();
   });
 
   describe('getCurrentSession', () => {
@@ -70,9 +73,14 @@ describe('SessionService', () => {
         isActive: true,
       };
       
+      // Mock the storage to return the existing session
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockSession));
       
-      const session = await sessionService.getCurrentSession();
+      // Create a new SessionService instance to test initialization with existing session
+      const testService = new SessionService();
+      await testService.waitForInitialization();
+      
+      const session = await testService.getCurrentSession();
       
       expect(session.sessionId).toBe('existing-session');
       expect(session.isActive).toBe(true);
@@ -96,13 +104,17 @@ describe('SessionService', () => {
   });
 
   describe('getSessionId', () => {
-    it('should return current session ID', () => {
+    it('should return current session ID', async () => {
+      // First create a session to ensure we have an ID
+      await sessionService.getCurrentSession();
       const sessionId = sessionService.getSessionId();
       expect(typeof sessionId).toBe('string');
+      expect(sessionId).toBe('test-session-id');
     });
 
     it('should return null when no session exists', async () => {
       await sessionService.clearSession();
+      await sessionService.waitForInitialization();
       const sessionId = sessionService.getSessionId();
       expect(sessionId).toBeNull();
     });

@@ -22,22 +22,30 @@ export interface SessionMetrics {
   transactions: string[];
 }
 
-class SessionService {
+export class SessionService {
   private currentSession: SessionData | null = null;
   private activityTimer: NodeJS.Timeout | null = null;
   private appStateSubscription: NativeEventSubscription | null = null;
+  private initializationPromise: Promise<void> | null = null;
+  private isInitialized: boolean = false;
 
   constructor() {
-    this.initializeSession();
+    this.initializationPromise = this.initializeSession();
     this.setupAppStateListener();
   }
 
-  private async initializeSession() {
-    await this.loadStoredSession();
-    if (!this.currentSession || !this.isSessionValid()) {
-      await this.startNewSession();
-    } else {
-      this.updateSessionActivity();
+  private async initializeSession(): Promise<void> {
+    try {
+      await this.loadStoredSession();
+      if (!this.currentSession || !this.isSessionValid()) {
+        await this.startNewSession();
+      } else {
+        this.updateSessionActivity();
+      }
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize session:', error);
+      this.isInitialized = true; // Mark as initialized even on error
     }
   }
 
@@ -109,6 +117,9 @@ class SessionService {
   }
 
   public async getCurrentSession(): Promise<SessionData> {
+    // Ensure initialization is complete
+    await this.waitForInitialization();
+    
     if (!this.currentSession || !this.isSessionValid()) {
       await this.startNewSession();
     }
@@ -118,6 +129,12 @@ class SessionService {
 
   public getSessionId(): string | null {
     return this.currentSession?.sessionId || null;
+  }
+
+  public async waitForInitialization(): Promise<void> {
+    if (this.initializationPromise && !this.isInitialized) {
+      await this.initializationPromise;
+    }
   }
 
   public updateSessionActivity(): void {
@@ -180,12 +197,16 @@ class SessionService {
 
   public async clearSession(): Promise<void> {
     this.currentSession = null;
+    this.isInitialized = false;
     await AsyncStorage.removeItem(SESSION_KEY);
     
     if (this.activityTimer) {
       clearTimeout(this.activityTimer);
       this.activityTimer = null;
     }
+    
+    // Reset initialization promise
+    this.initializationPromise = null;
   }
 
   public destroy(): void {
