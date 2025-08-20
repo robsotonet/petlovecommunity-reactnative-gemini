@@ -5,11 +5,9 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import correlationIdService from './correlationIdService';
 import { generateTransactionId, generateIdempotencyKey } from '../transactions/transactionService';
+import { API_CONFIG, ENV } from '../config/constants';
 import DeviceInfo from 'react-native-device-info';
 import { Platform } from 'react-native';
-
-// API Configuration
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000/api';
 
 // Enterprise headers factory
 const getEnterpriseHeaders = async (): Promise<Record<string, string>> => {
@@ -37,7 +35,7 @@ export const baseQueryWithEnterpriseHeaders: BaseQueryFn<
   
   // Create base query with enterprise configuration
   const baseQuery = fetchBaseQuery({
-    baseUrl: API_BASE_URL,
+    baseUrl: API_CONFIG.BASE_URL,
     prepareHeaders: async (headers, { getState }) => {
       // Add enterprise headers
       Object.entries(enterpriseHeaders).forEach(([key, value]) => {
@@ -59,13 +57,13 @@ export const baseQueryWithEnterpriseHeaders: BaseQueryFn<
 
       return headers;
     },
-    timeout: 30000, // 30 second timeout
+    timeout: API_CONFIG.TIMEOUT,
   });
 
   const result = await baseQuery(args, api, extraOptions);
 
   // Log enterprise tracking information
-  if (process.env.NODE_ENV === 'development') {
+  if (ENV.IS_DEV) {
     console.log('API Request:', {
       url: typeof args === 'string' ? args : args.url,
       method: typeof args === 'string' ? 'GET' : args.method,
@@ -88,7 +86,7 @@ class ApiClient {
     const headers = await this.getHeaders();
     
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'GET',
         headers,
       });
@@ -105,7 +103,7 @@ class ApiClient {
     headers['X-Idempotency-Key'] = generateIdempotencyKey();
     
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
@@ -123,7 +121,7 @@ class ApiClient {
     headers['X-Idempotency-Key'] = generateIdempotencyKey();
     
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(data),
@@ -140,7 +138,7 @@ class ApiClient {
     const headers = await this.getHeaders();
     
     try {
-      const response = await fetch(`${API_BASE_URL}${url}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
         method: 'DELETE',
         headers,
       });

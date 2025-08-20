@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
+import { STORAGE_KEYS, SESSION_CONFIG } from '../config/constants';
 
-const SESSION_KEY = 'CURRENT_SESSION';
-const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+// Use constants from config
+const SESSION_KEY = STORAGE_KEYS.CURRENT_SESSION;
+const SESSION_TIMEOUT = SESSION_CONFIG.TIMEOUT;
 
 export interface SessionData {
   sessionId: string;
@@ -23,6 +25,7 @@ export interface SessionMetrics {
 class SessionService {
   private currentSession: SessionData | null = null;
   private activityTimer: NodeJS.Timeout | null = null;
+  private appStateSubscription: NativeEventSubscription | null = null;
 
   constructor() {
     this.initializeSession();
@@ -39,7 +42,7 @@ class SessionService {
   }
 
   private setupAppStateListener() {
-    AppState.addEventListener('change', this.handleAppStateChange);
+    this.appStateSubscription = AppState.addListener('change', this.handleAppStateChange);
   }
 
   private handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -178,6 +181,18 @@ class SessionService {
   public async clearSession(): Promise<void> {
     this.currentSession = null;
     await AsyncStorage.removeItem(SESSION_KEY);
+    
+    if (this.activityTimer) {
+      clearTimeout(this.activityTimer);
+      this.activityTimer = null;
+    }
+  }
+
+  public destroy(): void {
+    if (this.appStateSubscription) {
+      this.appStateSubscription.remove();
+      this.appStateSubscription = null;
+    }
     
     if (this.activityTimer) {
       clearTimeout(this.activityTimer);

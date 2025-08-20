@@ -1,12 +1,22 @@
+// Mock React Native first before any imports
+jest.mock('react-native', () => ({
+  AppState: {
+    addListener: jest.fn(() => ({
+      remove: jest.fn(),
+    })),
+    currentState: 'active',
+  },
+}));
+
+jest.mock('../../services/deviceInfoService');
+jest.mock('../../services/sessionService');
+jest.mock('../../services/correlationIdService');
+
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { useAnalytics, useAnalyticsTracker } from '../useAnalytics';
 import deviceInfoService from '../../services/deviceInfoService';
 import sessionService from '../../services/sessionService';
 import correlationIdService from '../../services/correlationIdService';
-
-jest.mock('../../services/deviceInfoService');
-jest.mock('../../services/sessionService');
-jest.mock('../../services/correlationIdService');
 
 const mockDeviceInfoService = deviceInfoService as jest.Mocked<typeof deviceInfoService>;
 const mockSessionService = sessionService as jest.Mocked<typeof sessionService>;

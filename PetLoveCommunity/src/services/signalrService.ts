@@ -1,13 +1,12 @@
 import * as signalR from '@microsoft/signalr';
-
-const HUB_URL = 'https://petlovecommunity.com/hub';
+import { API_CONFIG } from '../config/constants';
 
 class SignalRService {
   private connection: signalR.HubConnection;
 
   constructor() {
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(HUB_URL)
+      .withUrl(API_CONFIG.SIGNALR_HUB_URL)
       .withAutomaticReconnect()
       .build();
 

@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const TRANSACTION_QUEUE_KEY = 'TRANSACTION_QUEUE';
+import { STORAGE_KEYS } from '../config/constants';
 
 interface Transaction {
   id: string;
@@ -10,29 +9,50 @@ interface Transaction {
 
 class TransactionService {
   private queue: Transaction[] = [];
+  private isLoaded: boolean = false;
+  private loadPromise: Promise<void> | null = null;
 
   constructor() {
-    this.loadQueue();
+    this.loadPromise = this.loadQueue();
   }
 
-  private async loadQueue() {
-    const storedQueue = await AsyncStorage.getItem(TRANSACTION_QUEUE_KEY);
-    if (storedQueue) {
-      this.queue = JSON.parse(storedQueue);
+  private async loadQueue(): Promise<void> {
+    if (this.isLoaded) return;
+    
+    try {
+      const storedQueue = await AsyncStorage.getItem(STORAGE_KEYS.TRANSACTION_QUEUE);
+      if (storedQueue) {
+        this.queue = JSON.parse(storedQueue);
+      }
+      this.isLoaded = true;
+    } catch (error) {
+      console.error('Failed to load transaction queue:', error);
+      this.queue = [];
+      this.isLoaded = true;
+    }
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loadPromise) {
+      await this.loadPromise;
+      this.loadPromise = null;
     }
   }
 
   public async addTransaction(payload: any) {
+    await this.ensureLoaded();
     // TODO: Add logic to add a transaction to the queue
     // and save the queue to AsyncStorage
   }
 
   public async processQueue() {
+    await this.ensureLoaded();
     // TODO: Add logic to process the transaction queue
     // This should be called when the app comes online
   }
 
-  public getQueue(): Transaction[] {
+  public async getQueue(): Promise<Transaction[]> {
+    await this.ensureLoaded();
     return this.queue;
   }
 }

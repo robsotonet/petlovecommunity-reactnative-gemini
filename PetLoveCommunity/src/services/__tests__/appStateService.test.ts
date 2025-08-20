@@ -5,7 +5,9 @@ import { AppState } from 'react-native';
 jest.mock('react-native', () => ({
   AppState: {
     currentState: 'active',
-    addEventListener: jest.fn(),
+    addListener: jest.fn(() => ({
+      remove: jest.fn(),
+    })),
   },
 }));
 
@@ -16,10 +18,10 @@ describe('appStateService', () => {
 
   it('should update the app state on change', () => {
     // Clear previous calls
-    (AppState.addEventListener as jest.Mock).mockClear();
+    (AppState.addListener as jest.Mock).mockClear();
     
     const service = new AppStateService();
-    const listener = (AppState.addEventListener as jest.Mock).mock.calls[0][1];
+    const listener = (AppState.addListener as jest.Mock).mock.calls[0][1];
     
     // Simulate app state changes
     listener('background');

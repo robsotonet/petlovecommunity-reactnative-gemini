@@ -1,11 +1,12 @@
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
 
 class AppStateService {
   private appState: AppStateStatus;
+  private subscription: NativeEventSubscription | null = null;
 
   constructor() {
     this.appState = AppState.currentState;
-    AppState.addEventListener('change', this.handleAppStateChange);
+    this.subscription = AppState.addListener('change', this.handleAppStateChange);
   }
 
   private handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -16,6 +17,13 @@ class AppStateService {
 
   public getAppState(): AppStateStatus {
     return this.appState;
+  }
+
+  public destroy(): void {
+    if (this.subscription) {
+      this.subscription.remove();
+      this.subscription = null;
+    }
   }
 }
 

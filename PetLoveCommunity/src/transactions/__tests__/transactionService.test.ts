@@ -11,7 +11,9 @@ describe('transactionService', () => {
     const mockQueue = [{ id: 'test-id', payload: {} }];
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(mockQueue));
     const service = new TransactionService();
-    await service.loadQueue();
-    expect(service.getQueue()).toEqual(mockQueue);
+    // Queue loading happens asynchronously in constructor, 
+    // getQueue() will await loading completion internally
+    const queue = await service.getQueue();
+    expect(queue).toEqual(mockQueue);
   });
 });
