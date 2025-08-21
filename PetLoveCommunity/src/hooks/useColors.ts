@@ -3,5 +3,5 @@ import { getColors } from '../styles/colors';
 
 export const useColors = () => {
   const colorScheme = useColorScheme();
-  return getColors();
+  return getColors(colorScheme);
 };

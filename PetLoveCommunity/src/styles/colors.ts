@@ -64,7 +64,7 @@ const darkColors = {
   },
 };
 
-export const getColors = () => {
-  const colorScheme = Appearance.getColorScheme();
-  return colorScheme === 'dark' ? darkColors : lightColors;
+export const getColors = (colorScheme?: 'light' | 'dark' | null) => {
+  const scheme = colorScheme ?? Appearance.getColorScheme();
+  return scheme === 'dark' ? darkColors : lightColors;
 };
