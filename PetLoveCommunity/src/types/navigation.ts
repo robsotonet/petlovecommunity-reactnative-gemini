@@ -8,6 +8,7 @@ import type { RouteProp } from '@react-navigation/native';
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
+  PetList: undefined;
   PetDetail: {
     petId: string;
   };
@@ -25,6 +26,9 @@ export type RootStackRouteProp<T extends keyof RootStackParamList> =
   RouteProp<RootStackParamList, T>;
 
 // Screen-specific navigation prop types
+export type PetListNavigationProp = RootStackNavigationProp<'PetList'>;
+export type PetListRouteProp = RootStackRouteProp<'PetList'>;
+
 export type PetDetailNavigationProp = RootStackNavigationProp<'PetDetail'>;
 export type PetDetailRouteProp = RootStackRouteProp<'PetDetail'>;
 

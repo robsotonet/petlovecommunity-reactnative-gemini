@@ -1,7 +1,8 @@
 // ApiClient Integration Tests
 // Testing enterprise headers, correlation IDs, and HTTP methods
 
-import apiClient, { baseQueryWithEnterpriseHeaders } from '../apiClient';
+import apiClient from '../apiClient';
+import { baseQueryWithEnterpriseHeaders } from '../../utils/baseQuery';
 import correlationIdService from '../correlationIdService';
 import { generateTransactionId, generateIdempotencyKey } from '../../transactions/transactionService';
 

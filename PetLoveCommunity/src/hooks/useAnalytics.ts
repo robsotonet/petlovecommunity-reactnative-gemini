@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import deviceInfoService from '../services/deviceInfoService';
 import sessionService from '../services/sessionService';
 import correlationIdService from '../services/correlationIdService';
+import loggingService from '../services/loggingService';
 
 export interface AnalyticsData {
   deviceId: string | null;
@@ -103,7 +104,7 @@ export const useAnalyticsTracker = () => {
   const trackPetView = (petId: string, source: 'search' | 'featured' | 'direct' | 'share') => {
     const trackingData = getTrackingData();
     if (!trackingData) {
-      console.warn('Analytics data not ready for pet view tracking');
+      loggingService.logAnalyticsWarning('Analytics data not ready for pet view tracking', { petId, source });
       return null;
     }
 
@@ -120,7 +121,7 @@ export const useAnalyticsTracker = () => {
   const trackPetInteraction = (petId: string, action: 'favorite' | 'unfavorite' | 'share' | 'contact' | 'application_start', metadata?: Record<string, any>) => {
     const trackingData = getTrackingData();
     if (!trackingData) {
-      console.warn('Analytics data not ready for pet interaction tracking');
+      loggingService.logAnalyticsWarning('Analytics data not ready for pet interaction tracking', { petId, action, metadata });
       return null;
     }
 
@@ -138,7 +139,7 @@ export const useAnalyticsTracker = () => {
   const trackScreenView = (screenName: string, metadata?: Record<string, any>) => {
     const trackingData = getTrackingData();
     if (!trackingData) {
-      console.warn('Analytics data not ready for screen view tracking');
+      loggingService.logAnalyticsWarning('Analytics data not ready for screen view tracking', { screenName, metadata });
       return null;
     }
 

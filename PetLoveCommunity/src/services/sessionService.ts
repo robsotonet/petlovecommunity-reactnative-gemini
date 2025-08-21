@@ -107,13 +107,19 @@ export class SessionService {
   }
 
   private scheduleInactivityCheck(): void {
-    if (this.activityTimer) {
-      clearTimeout(this.activityTimer);
-    }
+    // Always clear any existing timer before setting a new one
+    this.clearActivityTimer();
 
     this.activityTimer = setTimeout(() => {
       this.endSession();
     }, SESSION_TIMEOUT);
+  }
+
+  private clearActivityTimer(): void {
+    if (this.activityTimer) {
+      clearTimeout(this.activityTimer);
+      this.activityTimer = null;
+    }
   }
 
   public async getCurrentSession(): Promise<SessionData> {
@@ -168,10 +174,7 @@ export class SessionService {
       this.currentSession.isActive = false;
       await this.persistSession();
       
-      if (this.activityTimer) {
-        clearTimeout(this.activityTimer);
-        this.activityTimer = null;
-      }
+      this.clearActivityTimer();
     }
   }
 
@@ -200,10 +203,7 @@ export class SessionService {
     this.isInitialized = false;
     await AsyncStorage.removeItem(SESSION_KEY);
     
-    if (this.activityTimer) {
-      clearTimeout(this.activityTimer);
-      this.activityTimer = null;
-    }
+    this.clearActivityTimer();
     
     // Reset initialization promise
     this.initializationPromise = null;
@@ -215,10 +215,7 @@ export class SessionService {
       this.appStateSubscription = null;
     }
     
-    if (this.activityTimer) {
-      clearTimeout(this.activityTimer);
-      this.activityTimer = null;
-    }
+    this.clearActivityTimer();
   }
 }
 

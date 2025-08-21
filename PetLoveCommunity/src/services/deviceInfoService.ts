@@ -15,6 +15,17 @@ class DeviceInfoService {
   private deviceInfo: DeviceInfoData | null = null;
   private initializationPromise: Promise<DeviceInfoData> | null = null;
 
+  private isValidDeviceInfo(data: any): data is DeviceInfoData {
+    return (
+      data &&
+      typeof data === 'object' &&
+      typeof data.uniqueId === 'string' &&
+      typeof data.deviceId === 'string' &&
+      typeof data.bundleId === 'string' &&
+      typeof data.systemVersion === 'string'
+    );
+  }
+
   public async getDeviceInfo(): Promise<DeviceInfoData> {
     // Return cached data if available
     if (this.deviceInfo) {
@@ -46,11 +57,25 @@ class DeviceInfoService {
       if (storedInfo) {
         try {
           const parsed = JSON.parse(storedInfo);
-          this.deviceInfo = parsed;
-          return this.deviceInfo as DeviceInfoData;
+          
+          // Validate that parsed data has expected structure
+          if (this.isValidDeviceInfo(parsed)) {
+            this.deviceInfo = parsed;
+            return this.deviceInfo as DeviceInfoData;
+          } else {
+            console.warn('DeviceInfoService: Invalid stored data structure', {
+              expected: 'DeviceInfoData with uniqueId, deviceId, bundleId, systemVersion',
+              received: typeof parsed === 'object' ? Object.keys(parsed) : typeof parsed,
+              data: parsed
+            });
+          }
         } catch (parseError) {
           // Handle corrupted JSON data gracefully by continuing to collect fresh data
-          console.warn('DeviceInfoService: Corrupted stored data, collecting fresh device info');
+          console.warn('DeviceInfoService: Failed to parse stored data as JSON', {
+            error: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+            dataLength: storedInfo.length,
+            dataPreview: storedInfo.substring(0, 100)
+          });
         }
       }
     } catch (storageError) {

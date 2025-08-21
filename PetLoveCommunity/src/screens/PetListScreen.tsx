@@ -15,11 +15,12 @@ import { useGetFeaturedPetsQuery, useSearchPetsQuery } from '../services/petApi'
 import { useColors } from '../hooks/useColors';
 import { useAnalyticsTracker } from '../hooks/useAnalytics';
 import { Pet, PetSearchRequest } from '../types/pet';
+import { PetListNavigationProp } from '../types/navigation';
 import Button from '../components/Button';
 import Card from '../components/Card';
 
 interface PetListScreenProps {
-  navigation: any; // Will be properly typed with navigation types
+  navigation: PetListNavigationProp;
 }
 
 const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {

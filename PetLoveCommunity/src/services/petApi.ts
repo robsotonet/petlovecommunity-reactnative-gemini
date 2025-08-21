@@ -2,7 +2,7 @@
 // Enterprise RTK Query service for pet adoption features
 
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { baseQueryWithEnterpriseHeaders } from './apiClient';
+import { baseQueryWithEnterpriseHeaders } from '../utils/baseQuery';
 import type {
   Pet,
   PetSearchRequest,

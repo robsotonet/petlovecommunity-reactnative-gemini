@@ -11,16 +11,19 @@ jest.mock('react-native', () => ({
 jest.mock('../../services/deviceInfoService');
 jest.mock('../../services/sessionService');
 jest.mock('../../services/correlationIdService');
+jest.mock('../../services/loggingService');
 
 import { renderHook, waitFor } from '@testing-library/react-native';
 import { useAnalytics, useAnalyticsTracker } from '../useAnalytics';
 import deviceInfoService from '../../services/deviceInfoService';
 import sessionService from '../../services/sessionService';
 import correlationIdService from '../../services/correlationIdService';
+import loggingService from '../../services/loggingService';
 
 const mockDeviceInfoService = deviceInfoService as jest.Mocked<typeof deviceInfoService>;
 const mockSessionService = sessionService as jest.Mocked<typeof sessionService>;
 const mockCorrelationIdService = correlationIdService as jest.Mocked<typeof correlationIdService>;
+const mockLoggingService = loggingService as jest.Mocked<typeof loggingService>;
 
 describe('useAnalytics', () => {
   beforeEach(() => {
@@ -200,7 +203,6 @@ describe('useAnalyticsTracker', () => {
   it('should return null and warn when analytics data is not ready', async () => {
     mockDeviceInfoService.getDeviceInfo.mockRejectedValue(new Error('Device info failed'));
 
-    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     const { result } = renderHook(() => useAnalyticsTracker());
 
     await waitFor(() => {
@@ -210,9 +212,10 @@ describe('useAnalyticsTracker', () => {
     const trackingData = result.current.trackPetView('pet-123', 'featured');
 
     expect(trackingData).toBeNull();
-    expect(consoleSpy).toHaveBeenCalledWith('Analytics data not ready for pet view tracking');
-
-    consoleSpy.mockRestore();
+    expect(mockLoggingService.logAnalyticsWarning).toHaveBeenCalledWith(
+      'Analytics data not ready for pet view tracking',
+      { petId: 'pet-123', source: 'featured' }
+    );
   });
 
   it('should get tracking data directly', async () => {
