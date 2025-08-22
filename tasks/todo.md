@@ -76,7 +76,7 @@ This document outlines the tasks to be completed for the Pet Love Community mobi
 ### Phase 2 Review
 - **BOTH-TEST-002: Component & Auth Testing**
   - [x] **Developer 2:** Write unit tests for all design system components.
-  - [ ] **Developer 1:** Write unit tests for authentication, session management, and biometric flows. (IN PROGRESS)
+  - [x] **Developer 1:** Write unit tests for authentication, session management, and biometric flows.
 
 ---
 

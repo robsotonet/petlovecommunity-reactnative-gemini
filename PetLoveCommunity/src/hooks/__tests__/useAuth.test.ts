@@ -12,11 +12,34 @@ jest.mock('../../services/authService', () => ({
   resetCredentials: jest.fn(),
 }));
 
+// Mock the authApi
+jest.mock('../../services/authApi', () => ({
+  __esModule: true,
+  default: {
+    login: jest.fn(),
+    logout: jest.fn(),
+    validateToken: jest.fn(),
+  },
+}));
+
 const mockAuthService = authService as jest.Mocked<typeof authService>;
+
+// Import authApi after mocking
+import authApi from '../../services/authApi';
+const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 
 describe('useAuth Hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set up default mock behavior
+    mockAuthApi.validateToken.mockResolvedValue(true);
+    mockAuthApi.login.mockResolvedValue({
+      success: true,
+      token: 'mock-token',
+      user: { id: '1', username: 'testuser', email: 'test@test.com', displayName: 'Test User' },
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    });
+    mockAuthApi.logout.mockResolvedValue(undefined);
   });
 
   describe('Initialization and State Management', () => {
@@ -88,18 +111,19 @@ describe('useAuth Hook', () => {
         expect(result.current.isLoggedIn).toBe(false);
       });
       
-      // Perform login
+      // Perform login - password needs to be at least 6 characters
       await act(async () => {
-        await result.current.login('testuser', 'token123');
+        await result.current.login('testuser', 'password123');
       });
       
-      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'token123');
+      // Should call API and then store credentials with the token from API response
+      expect(mockAuthApi.login).toHaveBeenCalledWith({ username: 'testuser', password: 'password123' });
+      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'mock-token');
       expect(result.current.isLoggedIn).toBe(true);
     });
 
     test('should handle login with empty strings', async () => {
       mockAuthService.getCredentials.mockResolvedValueOnce(false);
-      mockAuthService.setCredentials.mockResolvedValueOnce(undefined);
       
       const { result } = renderHook(() => useAuth());
       
@@ -107,12 +131,16 @@ describe('useAuth Hook', () => {
         expect(result.current.isLoggedIn).toBe(false);
       });
       
-      await act(async () => {
-        await result.current.login('', '');
-      });
+      // Empty strings should throw validation error
+      await expect(
+        act(async () => {
+          await result.current.login('', '');
+        })
+      ).rejects.toThrow('Username and password are required');
       
-      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('', '');
-      expect(result.current.isLoggedIn).toBe(true);
+      // Should remain logged out after failed login
+      expect(result.current.isLoggedIn).toBe(false);
+      expect(mockAuthService.setCredentials).not.toHaveBeenCalled();
     });
 
     test('should handle login errors gracefully', async () => {
@@ -265,8 +293,8 @@ describe('useAuth Hook', () => {
       expect(result.current.isLoggedIn).toBe(false);
       
       // Verify all service calls
-      expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'token123');
+      expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(2); // Called once on mount, once on logout
+      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'mock-token'); // API returns token
       expect(mockAuthService.resetCredentials).toHaveBeenCalledTimes(1);
     });
 
@@ -318,8 +346,8 @@ describe('useAuth Hook', () => {
       
       expect(result.current.isLoggedIn).toBe(false);
       
-      // Verify service calls
-      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'token123');
+      // Verify service calls - API login is mocked to return mock-token
+      expect(mockAuthService.setCredentials).toHaveBeenCalledWith('testuser', 'mock-token');
       expect(mockAuthService.resetCredentials).toHaveBeenCalledTimes(1);
     });
   });
@@ -356,7 +384,7 @@ describe('useAuth Hook', () => {
         await result.current.login(longUsername, longToken);
       });
       
-      expect(mockAuthService.setCredentials).toHaveBeenCalledWith(longUsername, longToken);
+      expect(mockAuthService.setCredentials).toHaveBeenCalledWith(longUsername, 'mock-token'); // API returns the token
       expect(result.current.isLoggedIn).toBe(true);
     });
   });
