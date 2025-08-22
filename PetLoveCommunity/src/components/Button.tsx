@@ -6,22 +6,37 @@ interface ButtonProps {
   title: string;
   onPress: (event: GestureResponderEvent) => void;
   type?: 'primary' | 'secondary';
+  disabled?: boolean;
   accessibilityLabel?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', accessibilityLabel }) => {
+const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disabled = false, accessibilityLabel }) => {
   const colors = useColors();
-  const buttonStyle = type === 'primary' ? { backgroundColor: colors.primary.coral } : { backgroundColor: colors.primary.teal };
-  const textStyle = type === 'primary' ? { color: '#FFFFFF' } : { color: '#FFFFFF' };
+  
+  const getButtonStyle = () => {
+    if (disabled) {
+      return { backgroundColor: colors.neutral.lightGray, opacity: 0.6 };
+    }
+    return type === 'primary' ? { backgroundColor: colors.primary.coral } : { backgroundColor: colors.primary.teal };
+  };
+  
+  const getTextStyle = () => {
+    if (disabled) {
+      return { color: colors.neutral.darkGray };
+    }
+    return { color: '#FFFFFF' };
+  };
 
   return (
     <TouchableOpacity
-      style={[styles.button, buttonStyle]}
-      onPress={onPress}
+      style={[styles.button, getButtonStyle()]}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
+      accessibilityState={{ disabled }}
     >
-      <Text style={[styles.text, textStyle]}>{title}</Text>
+      <Text style={[styles.text, getTextStyle()]}>{title}</Text>
     </TouchableOpacity>
   );
 };

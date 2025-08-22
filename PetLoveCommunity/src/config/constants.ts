@@ -3,7 +3,7 @@
 
 export const API_CONFIG = {
   // API Base URL - configurable per environment
-  BASE_URL: process.env.API_BASE_URL || 'http://localhost:5000/api',
+  BASE_URL: process.env.API_BASE_URL || 'http://localhost:5248/api',
   
   // SignalR Hub URL - configurable per environment
   SIGNALR_HUB_URL: process.env.SIGNALR_HUB_URL || 'https://petlovecommunity.com/hub',

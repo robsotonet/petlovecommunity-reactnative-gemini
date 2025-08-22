@@ -8,6 +8,8 @@ const lightColors = {
   neutral: {
     beige: '#F7FFF7',
     midnight: '#1A535C',
+    lightGray: '#CCCCCC',
+    darkGray: '#666666',
   },
   extended: {
     coralVariations: {
@@ -40,6 +42,8 @@ const darkColors = {
   neutral: {
     beige: '#1A1A1A',
     midnight: '#FFFFFF',
+    lightGray: '#444444',
+    darkGray: '#BBBBBB',
   },
   extended: {
     coralVariations: {
