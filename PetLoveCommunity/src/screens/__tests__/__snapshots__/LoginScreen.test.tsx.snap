@@ -1,0 +1,54 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LoginScreen Component Rendering should have proper component structure 1`] = `
+<View
+  style={
+    {
+      "flex": 1,
+      "justifyContent": "center",
+      "padding": 20,
+    }
+  }
+>
+  <View>
+    <Text
+      testID="input-label"
+    >
+      Username
+    </Text>
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Username"
+      testID="input"
+      value=""
+    />
+  </View>
+  <View>
+    <Text
+      testID="input-label"
+    >
+      Password
+    </Text>
+    <TextInput
+      onChangeText={[Function]}
+      placeholder="Password"
+      secureTextEntry={true}
+      testID="input"
+      value=""
+    />
+  </View>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "opacity": 1,
+      }
+    }
+    testID="button"
+  >
+    <Text>
+      Login
+    </Text>
+  </TouchableOpacity>
+</View>
+`;
