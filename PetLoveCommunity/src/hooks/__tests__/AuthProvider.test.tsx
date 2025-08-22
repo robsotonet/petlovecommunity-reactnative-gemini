@@ -221,7 +221,7 @@ describe('AuthProvider', () => {
 
     test('should handle API login failure', async () => {
       mockAuthService.getCredentials.mockResolvedValue(false);
-      mockAuthApi.login.mockResolvedValue({ success: false, token: '', user: null as any, expiresAt: '' });
+      mockAuthApi.login.mockResolvedValue({ success: false, token: '', expiresAt: '' });
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: AuthProvider,

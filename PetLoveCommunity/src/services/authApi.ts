@@ -12,7 +12,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   token: string;
-  user: {
+  user?: {
     id: string;
     username: string;
     email: string;
