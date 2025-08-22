@@ -104,3 +104,11 @@ typings/
 # Expo
 .expo/
 dist/
+
+# Claude Code local configuration
+.claude/settings.local.json
+.claude/settings.*.local.json
+
+# Windows temp/null files  
+nul
+NUL
