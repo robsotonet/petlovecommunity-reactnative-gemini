@@ -30,13 +30,38 @@ jest.mock('react-native-device-info', () => ({
   getVersion: jest.fn(() => '1.0.0'),
 }));
 
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(() => Promise.resolve(null)),
+  setItem: jest.fn(() => Promise.resolve()),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock('../../config/constants', () => ({
   API_CONFIG: {
     BASE_URL: 'http://test-api.com',
     TIMEOUT: 10000,
+    SIGNALR_HUB_URL: 'http://test-signalr.com/hub',
+  },
+  STORAGE_KEYS: {
+    TRANSACTION_QUEUE: 'TRANSACTION_QUEUE',
+    CURRENT_SESSION: 'CURRENT_SESSION',
+    USER_PREFERENCES: 'USER_PREFERENCES',
+    DEVICE_INFO: 'DEVICE_INFO',
+  },
+  SESSION_CONFIG: {
+    TIMEOUT: 30 * 60 * 1000,
+    ACTIVITY_UPDATE_INTERVAL: 5 * 60 * 1000,
+  },
+  ANALYTICS_CONFIG: {
+    ENABLED: false, // Disable for tests
+    BATCH_SIZE: 10,
+    FLUSH_INTERVAL: 30000,
   },
   ENV: {
-    IS_DEV: true,
+    IS_DEV: false,
+    IS_PROD: false,
+    IS_TEST: true,
   },
 }));
 
@@ -142,16 +167,17 @@ const server = setupServer(
     return res(ctx.json([mockPet]));
   }),
   
+  // IMPORTANT: More specific routes must come before generic ones
+  rest.get('http://test-api.com/pets/favorites', (req, res, ctx) => {
+    return res(ctx.json([mockFavorite]));
+  }),
+  
   rest.get('http://test-api.com/pets/:petId', (req, res, ctx) => {
     return res(ctx.json(mockPet));
   }),
   
   rest.post('http://test-api.com/pets/batch', (req, res, ctx) => {
     return res(ctx.json([mockPet]));
-  }),
-  
-  rest.get('http://test-api.com/pets/favorites', (req, res, ctx) => {
-    return res(ctx.json([mockFavorite]));
   }),
   
   rest.post('http://test-api.com/pets/:petId/favorite', (req, res, ctx) => {
@@ -211,6 +237,149 @@ const server = setupServer(
       timestamp: '2024-01-01T00:00:00Z',
     };
     return res(ctx.json(response));
+  }),
+
+  // Missing adoption application endpoints
+  rest.get('http://test-api.com/adoption/applications', (req, res, ctx) => {
+    const mockApplication: AdoptionApplication = {
+      id: 'app-123',
+      petId: 'pet-123',
+      userId: 'user-123',
+      status: 'submitted',
+      submittedAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '555-0123',
+        address: '123 Main St',
+        dateOfBirth: '1990-01-01',
+      },
+      livingSituation: {
+        housingType: 'house',
+        ownOrRent: 'own',
+        yardType: 'large',
+      },
+      experience: {
+        previousPets: true,
+        currentPets: [],
+        petExperience: 'Had dogs for 10 years',
+      },
+      references: [],
+      documents: [],
+    };
+    return res(ctx.json([mockApplication]));
+  }),
+
+  rest.get('http://test-api.com/adoption/applications/:applicationId', (req, res, ctx) => {
+    const mockApplication: AdoptionApplication = {
+      id: 'app-123',
+      petId: 'pet-123',
+      userId: 'user-123',
+      status: 'under_review',
+      submittedAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-02T00:00:00Z',
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '555-0123',
+        address: '123 Main St',
+        dateOfBirth: '1990-01-01',
+      },
+      livingSituation: {
+        housingType: 'house',
+        ownOrRent: 'own',
+        yardType: 'large',
+      },
+      experience: {
+        previousPets: true,
+        currentPets: [],
+        petExperience: 'Had dogs for 10 years',
+      },
+      references: [],
+      documents: [],
+    };
+    return res(ctx.json(mockApplication));
+  }),
+
+  rest.patch('http://test-api.com/adoption/applications/:applicationId', (req, res, ctx) => {
+    const mockApplication: AdoptionApplication = {
+      id: 'app-123',
+      petId: 'pet-123',
+      userId: 'user-123',
+      status: 'updated',
+      submittedAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-02T12:00:00Z',
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Smith', // Updated
+        email: 'john@example.com',
+        phone: '555-0123',
+        address: '123 Main St',
+        dateOfBirth: '1990-01-01',
+      },
+      livingSituation: {
+        housingType: 'house',
+        ownOrRent: 'own',
+        yardType: 'large',
+      },
+      experience: {
+        previousPets: true,
+        currentPets: [],
+        petExperience: 'Had dogs for 10 years',
+      },
+      references: [],
+      documents: [],
+    };
+    
+    const response: PetApiResponse<AdoptionApplication> = {
+      data: mockApplication,
+      success: true,
+      correlationId: 'test-correlation-id',
+      timestamp: '2024-01-02T12:00:00Z',
+    };
+    return res(ctx.json(response));
+  }),
+
+  rest.post('http://test-api.com/adoption/applications/:applicationId/submit', (req, res, ctx) => {
+    const mockApplication: AdoptionApplication = {
+      id: 'app-123',
+      petId: 'pet-123',
+      userId: 'user-123',
+      status: 'submitted',
+      submittedAt: '2024-01-02T12:00:00Z',
+      updatedAt: '2024-01-02T12:00:00Z',
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '555-0123',
+        address: '123 Main St',
+        dateOfBirth: '1990-01-01',
+      },
+      livingSituation: {
+        housingType: 'house',
+        ownOrRent: 'own',
+        yardType: 'large',
+      },
+      experience: {
+        previousPets: true,
+        currentPets: [],
+        petExperience: 'Had dogs for 10 years',
+      },
+      references: [],
+      documents: [],
+    };
+    
+    const response: PetApiResponse<AdoptionApplication> = {
+      data: mockApplication,
+      success: true,
+      correlationId: 'test-correlation-id',
+      timestamp: '2024-01-02T12:00:00Z',
+    };
+    return res(ctx.json(response));
   })
 );
 
@@ -228,15 +397,29 @@ const createTestStore = () => {
 describe('Pet API Integration Tests', () => {
   let store: ReturnType<typeof createTestStore>;
 
-  beforeAll(() => server.listen());
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' });
+    // Set shorter test timeouts to prevent hanging
+    jest.setTimeout(5000);
+  });
   
   beforeEach(() => {
     store = createTestStore();
     jest.clearAllMocks();
+    // Use fake timers to control timing
+    jest.useFakeTimers();
   });
   
-  afterEach(() => server.resetHandlers());
-  afterAll(() => server.close());
+  afterEach(async () => {
+    server.resetHandlers();
+    // Run pending timers and clean up
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+  });
+  
+  afterAll(() => {
+    server.close();
+  });
 
   describe('Pet Discovery Endpoints', () => {
     test('searchPets should make POST request with search criteria', async () => {
@@ -246,13 +429,14 @@ describe('Pet API Integration Tests', () => {
         limit: 10,
       };
 
-      const { data } = await store.dispatch(
+      const result = await store.dispatch(
         petApi.endpoints.searchPets.initiate(searchRequest)
       ).unwrap();
 
-      expect(data.pets).toHaveLength(1);
-      expect(data.pets[0].name).toBe('Buddy');
-      expect(data.total).toBe(1);
+      // RTK Query returns the response directly from MSW
+      expect(result.pets).toHaveLength(1);
+      expect(result.pets[0].name).toBe('Buddy');
+      expect(result.total).toBe(1);
     });
 
     test('getFeaturedPets should cache results properly', async () => {
@@ -271,33 +455,33 @@ describe('Pet API Integration Tests', () => {
     });
 
     test('getPetById should return single pet', async () => {
-      const { data } = await store.dispatch(
+      const result = await store.dispatch(
         petApi.endpoints.getPetById.initiate('pet-123')
       ).unwrap();
 
-      expect(data.id).toBe('pet-123');
-      expect(data.name).toBe('Buddy');
+      expect(result.id).toBe('pet-123');
+      expect(result.name).toBe('Buddy');
     });
 
     test('getPetsByIds should handle batch requests', async () => {
-      const { data } = await store.dispatch(
+      const result = await store.dispatch(
         petApi.endpoints.getPetsByIds.initiate(['pet-123'])
       ).unwrap();
 
-      expect(data).toHaveLength(1);
-      expect(data[0].id).toBe('pet-123');
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('pet-123');
     });
   });
 
   describe('Pet Favorites Endpoints', () => {
     test('getUserFavorites should return user favorites', async () => {
-      const { data } = await store.dispatch(
+      const result = await store.dispatch(
         petApi.endpoints.getUserFavorites.initiate()
       ).unwrap();
 
-      expect(data).toHaveLength(1);
-      expect(data[0].petId).toBe('pet-123');
-      expect(data[0].notes).toBe('Love this dog!');
+      expect(result).toHaveLength(1);
+      expect(result[0].petId).toBe('pet-123');
+      expect(result[0].notes).toBe('Love this dog!');
     });
 
     test('addPetToFavorites should perform optimistic update', async () => {
@@ -362,7 +546,7 @@ describe('Pet API Integration Tests', () => {
         documents: [],
       };
 
-      const { data } = await store.dispatch(
+      const data = await store.dispatch(
         petApi.endpoints.createAdoptionApplication.initiate(applicationData)
       ).unwrap();
 
@@ -469,42 +653,7 @@ describe('Pet API Integration Tests', () => {
 
   describe('Adoption Application Endpoints (Missing Coverage)', () => {
     test('getUserApplications should fetch user applications', async () => {
-      server.use(
-        rest.get('http://test-api.com/adoption/applications', (req, res, ctx) => {
-          return res(ctx.json([
-            {
-              id: 'app-123',
-              petId: 'pet-123',
-              userId: 'user-123',
-              status: 'submitted',
-              submittedAt: '2024-01-01T00:00:00Z',
-              updatedAt: '2024-01-01T00:00:00Z',
-              personalInfo: {
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                phone: '555-0123',
-                address: '123 Main St',
-                dateOfBirth: '1990-01-01',
-              },
-              livingSituation: {
-                housingType: 'house',
-                ownOrRent: 'own',
-                yardType: 'large',
-              },
-              experience: {
-                previousPets: true,
-                currentPets: [],
-                petExperience: 'Had dogs for 10 years',
-              },
-              references: [],
-              documents: [],
-            }
-          ]));
-        })
-      );
-
-      const { data } = await store.dispatch(
+      const data = await store.dispatch(
         petApi.endpoints.getUserApplications.initiate()
       ).unwrap();
 
@@ -514,40 +663,7 @@ describe('Pet API Integration Tests', () => {
     });
 
     test('getApplicationById should fetch specific application', async () => {
-      server.use(
-        rest.get('http://test-api.com/adoption/applications/app-123', (req, res, ctx) => {
-          return res(ctx.json({
-            id: 'app-123',
-            petId: 'pet-123',
-            userId: 'user-123',
-            status: 'under_review',
-            submittedAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-02T00:00:00Z',
-            personalInfo: {
-              firstName: 'John',
-              lastName: 'Doe',
-              email: 'john@example.com',
-              phone: '555-0123',
-              address: '123 Main St',
-              dateOfBirth: '1990-01-01',
-            },
-            livingSituation: {
-              housingType: 'house',
-              ownOrRent: 'own',
-              yardType: 'large',
-            },
-            experience: {
-              previousPets: true,
-              currentPets: [],
-              petExperience: 'Had dogs for 10 years',
-            },
-            references: [],
-            documents: [],
-          }));
-        })
-      );
-
-      const { data } = await store.dispatch(
+      const data = await store.dispatch(
         petApi.endpoints.getApplicationById.initiate('app-123')
       ).unwrap();
 
@@ -556,45 +672,6 @@ describe('Pet API Integration Tests', () => {
     });
 
     test('updateAdoptionApplication should update application', async () => {
-      server.use(
-        rest.patch('http://test-api.com/adoption/applications/app-123', (req, res, ctx) => {
-          const response: PetApiResponse<AdoptionApplication> = {
-            data: {
-              id: 'app-123',
-              petId: 'pet-123',
-              userId: 'user-123',
-              status: 'updated',
-              submittedAt: '2024-01-01T00:00:00Z',
-              updatedAt: '2024-01-02T12:00:00Z',
-              personalInfo: {
-                firstName: 'John',
-                lastName: 'Smith', // Updated
-                email: 'john@example.com',
-                phone: '555-0123',
-                address: '123 Main St',
-                dateOfBirth: '1990-01-01',
-              },
-              livingSituation: {
-                housingType: 'house',
-                ownOrRent: 'own',
-                yardType: 'large',
-              },
-              experience: {
-                previousPets: true,
-                currentPets: [],
-                petExperience: 'Had dogs for 10 years',
-              },
-              references: [],
-              documents: [],
-            },
-            success: true,
-            correlationId: 'test-correlation-id',
-            timestamp: '2024-01-02T12:00:00Z',
-          };
-          return res(ctx.json(response));
-        })
-      );
-
       const updateData = {
         personalInfo: {
           firstName: 'John',
@@ -606,7 +683,7 @@ describe('Pet API Integration Tests', () => {
         }
       };
 
-      const { data } = await store.dispatch(
+      const data = await store.dispatch(
         petApi.endpoints.updateAdoptionApplication.initiate({
           id: 'app-123',
           updates: updateData
@@ -618,46 +695,7 @@ describe('Pet API Integration Tests', () => {
     });
 
     test('submitAdoptionApplication should submit application', async () => {
-      server.use(
-        rest.post('http://test-api.com/adoption/applications/app-123/submit', (req, res, ctx) => {
-          const response: PetApiResponse<AdoptionApplication> = {
-            data: {
-              id: 'app-123',
-              petId: 'pet-123',
-              userId: 'user-123',
-              status: 'submitted',
-              submittedAt: '2024-01-02T12:00:00Z',
-              updatedAt: '2024-01-02T12:00:00Z',
-              personalInfo: {
-                firstName: 'John',
-                lastName: 'Doe',
-                email: 'john@example.com',
-                phone: '555-0123',
-                address: '123 Main St',
-                dateOfBirth: '1990-01-01',
-              },
-              livingSituation: {
-                housingType: 'house',
-                ownOrRent: 'own',
-                yardType: 'large',
-              },
-              experience: {
-                previousPets: true,
-                currentPets: [],
-                petExperience: 'Had dogs for 10 years',
-              },
-              references: [],
-              documents: [],
-            },
-            success: true,
-            correlationId: 'test-correlation-id',
-            timestamp: '2024-01-02T12:00:00Z',
-          };
-          return res(ctx.json(response));
-        })
-      );
-
-      const { data } = await store.dispatch(
+      const data = await store.dispatch(
         petApi.endpoints.submitAdoptionApplication.initiate('app-123')
       ).unwrap();
 
@@ -869,17 +907,17 @@ describe('Pet API Integration Tests', () => {
     test('should handle network timeout errors', async () => {
       server.use(
         rest.get('http://test-api.com/pets/pet-timeout', (req, res, ctx) => {
-          return res(ctx.delay('infinite'));
+          // Use a reasonable delay instead of infinite
+          return res(ctx.delay(5000), ctx.json({ error: 'Request timeout' }));
         })
       );
 
       // This would normally timeout based on API_CONFIG.TIMEOUT
-      // For testing, we'll just verify the request structure
       const promise = store.dispatch(
         petApi.endpoints.getPetById.initiate('pet-timeout')
       );
 
-      // Cancel the request to avoid hanging test
+      // Cancel the request immediately to avoid hanging test
       promise.abort();
 
       expect(promise.requestId).toBeDefined();
