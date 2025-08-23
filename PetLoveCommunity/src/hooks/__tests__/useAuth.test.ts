@@ -43,10 +43,17 @@ describe('useAuth Hook', () => {
   });
 
   describe('Initialization and State Management', () => {
-    test('should initialize with isLoggedIn as false', () => {
+    test('should initialize with isLoggedIn as false', async () => {
       mockAuthService.getCredentials.mockResolvedValueOnce(false);
       
       const { result } = renderHook(() => useAuth());
+
+      // Wait for initial state to be set
+      await act(async () => {
+        await waitFor(() => {
+          expect(result.current.isLoading).toBe(false);
+        });
+      });
       
       // Initial state should be false before credentials check
       expect(result.current.isLoggedIn).toBe(false);
