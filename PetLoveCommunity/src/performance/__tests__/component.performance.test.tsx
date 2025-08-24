@@ -567,4 +567,399 @@ describe('Component Performance Tests', () => {
       });
     });
   });
+
+  describe('Mobile-Specific Performance Benchmarks', () => {
+    test('should handle memory pressure scenarios', async () => {
+      // Simulate memory pressure by creating large components
+      const MemoryPressureComponent = ({ itemCount }: { itemCount: number }) => {
+        const [data] = useState(() => 
+          Array.from({ length: itemCount }, (_, i) => ({
+            id: i,
+            title: `Pet ${i}`,
+            description: 'A'.repeat(1000), // Large text content
+            images: Array.from({ length: 5 }, (_, j) => `image_${i}_${j}.jpg`)
+          }))
+        );
+
+        return (
+          <Card testID="memory-pressure-card">
+            {data.slice(0, 50).map(item => ( // Only render first 50 to avoid test timeout
+              <Button 
+                key={item.id}
+                title={`${item.title}: ${item.description.slice(0, 20)}...`}
+                onPress={() => {}}
+                testID={`pet-item-${item.id}`}
+              />
+            ))}
+          </Card>
+        );
+      };
+
+      const start = performance.now();
+
+      // Test with increasing memory pressure
+      const results = [];
+      for (const itemCount of [100, 500, 1000, 2000]) {
+        const componentStart = performance.now();
+        const { unmount } = render(<MemoryPressureComponent itemCount={itemCount} />);
+        const componentEnd = performance.now();
+        
+        results.push({
+          itemCount,
+          renderTime: componentEnd - componentStart
+        });
+        
+        unmount();
+        
+        // Simulate garbage collection by creating and discarding objects
+        for (let i = 0; i < 100; i++) {
+          const temp = new Array(1000).fill(Math.random());
+        }
+      }
+
+      const end = performance.now();
+      const totalTime = end - start;
+
+      // Performance should degrade gracefully under memory pressure
+      expect(totalTime).toBeLessThan(5000); // Should complete within 5 seconds
+      
+      // Render times shouldn't increase exponentially
+      const firstRender = results[0].renderTime;
+      const lastRender = results[results.length - 1].renderTime;
+      const degradationFactor = lastRender / firstRender;
+      
+      expect(degradationFactor).toBeLessThan(10); // Should not be more than 10x slower
+
+      console.log('Memory Pressure Performance:', {
+        totalTime: `${totalTime.toFixed(3)}ms`,
+        results: results.map(r => ({
+          items: r.itemCount,
+          renderTime: `${r.renderTime.toFixed(3)}ms`
+        })),
+        degradationFactor: degradationFactor.toFixed(2)
+      });
+    });
+
+    test('should simulate slow device performance', async () => {
+      // Simulate slow device by adding artificial delays and CPU-intensive tasks
+      const SlowDeviceComponent = () => {
+        const [isLoading, setIsLoading] = useState(true);
+        const [data, setData] = useState<any[]>([]);
+
+        useEffect(() => {
+          // Simulate slow network and CPU
+          const loadData = async () => {
+            // Simulate slow network (mobile 3G: 100-400ms latency)
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Simulate slow CPU processing
+            const computeIntensiveTask = () => {
+              let result = 0;
+              for (let i = 0; i < 10000; i++) {
+                result += Math.sin(i) * Math.cos(i);
+              }
+              return result;
+            };
+
+            const processedData = Array.from({ length: 20 }, (_, i) => ({
+              id: i,
+              value: computeIntensiveTask(),
+              timestamp: Date.now()
+            }));
+
+            setData(processedData);
+            setIsLoading(false);
+          };
+
+          loadData();
+        }, []);
+
+        if (isLoading) {
+          return <Button title="Loading..." onPress={() => {}} testID="loading-button" />;
+        }
+
+        return (
+          <Card testID="slow-device-card">
+            {data.map(item => (
+              <Button 
+                key={item.id}
+                title={`Item ${item.id}: ${item.value.toFixed(2)}`}
+                onPress={() => {}}
+                testID={`slow-item-${item.id}`}
+              />
+            ))}
+          </Card>
+        );
+      };
+
+      const start = performance.now();
+      
+      const { getByTestId, queryByTestId } = render(<SlowDeviceComponent />);
+      
+      // Should show loading state initially
+      expect(getByTestId('loading-button')).toBeTruthy();
+      
+      // Wait for component to finish loading (with timeout)
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds at 100ms intervals
+      
+      while (attempts < maxAttempts && queryByTestId('loading-button')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      const end = performance.now();
+      const totalTime = end - start;
+
+      // Should eventually load even on slow devices
+      expect(queryByTestId('slow-device-card')).toBeTruthy();
+      
+      // Should complete within reasonable time for slow devices (mobile target: <5s)
+      expect(totalTime).toBeLessThan(5000);
+      
+      // Should show at least some processed data
+      expect(queryByTestId('slow-item-0')).toBeTruthy();
+
+      console.log('Slow Device Performance:', {
+        totalTime: `${totalTime.toFixed(3)}ms`,
+        attempts,
+        loadingTime: `${(totalTime - 200).toFixed(3)}ms`, // Minus initial delay
+        target: '<5000ms for mobile devices'
+      });
+    });
+
+    test('should handle battery usage simulation', () => {
+      // Simulate battery-conscious rendering patterns
+      const BatteryAwareComponent = ({ batteryLevel = 'high' }: { batteryLevel?: 'high' | 'medium' | 'low' }) => {
+        const getOptimizationLevel = (level: string) => {
+          switch (level) {
+            case 'low':
+              return { maxItems: 5, updateFrequency: 5000, animations: false };
+            case 'medium':
+              return { maxItems: 10, updateFrequency: 2000, animations: true };
+            default:
+              return { maxItems: 20, updateFrequency: 1000, animations: true };
+          }
+        };
+
+        const config = getOptimizationLevel(batteryLevel);
+        
+        return (
+          <Card testID="battery-aware-card">
+            <Button 
+              title={`Battery Level: ${batteryLevel}`}
+              onPress={() => {}}
+              testID="battery-status"
+            />
+            {Array.from({ length: config.maxItems }, (_, i) => (
+              <Button 
+                key={i}
+                title={`Item ${i} (${config.animations ? 'animated' : 'static'})`}
+                onPress={() => {}}
+                testID={`battery-item-${i}`}
+              />
+            ))}
+            <Button 
+              title={`Update every ${config.updateFrequency}ms`}
+              onPress={() => {}}
+              testID="update-frequency"
+            />
+          </Card>
+        );
+      };
+
+      // Test different battery levels
+      const batteryLevels = ['high', 'medium', 'low'] as const;
+      const results = [];
+
+      for (const level of batteryLevels) {
+        const start = performance.now();
+        
+        const { getByTestId, getAllByText } = render(<BatteryAwareComponent batteryLevel={level} />);
+        
+        const end = performance.now();
+        const renderTime = end - start;
+        
+        // Verify battery optimization is working
+        const items = getAllByText(/Item \d+/).length;
+        
+        results.push({
+          batteryLevel: level,
+          renderTime,
+          itemCount: items
+        });
+
+        expect(getByTestId('battery-status')).toBeTruthy();
+      }
+
+      // Low battery should render fewer items and be faster
+      const highBattery = results.find(r => r.batteryLevel === 'high')!;
+      const lowBattery = results.find(r => r.batteryLevel === 'low')!;
+
+      expect(lowBattery.itemCount).toBeLessThan(highBattery.itemCount);
+      expect(lowBattery.renderTime).toBeLessThanOrEqual(highBattery.renderTime * 1.5);
+
+      console.log('Battery Usage Performance:', {
+        results: results.map(r => ({
+          level: r.batteryLevel,
+          renderTime: `${r.renderTime.toFixed(3)}ms`,
+          items: r.itemCount
+        })),
+        optimization: `${((highBattery.itemCount - lowBattery.itemCount) / highBattery.itemCount * 100).toFixed(1)}% fewer items in low battery`
+      });
+    });
+
+    test('should benchmark React Native bridge performance', () => {
+      // Simulate React Native bridge overhead with native operations
+      const BridgeIntensiveComponent = () => {
+        const [dimensions, setDimensions] = useState({ width: 375, height: 812 });
+        const [networkState, setNetworkState] = useState('wifi');
+        
+        useEffect(() => {
+          // Simulate multiple bridge calls
+          const bridgeOperations = [
+            () => setDimensions({ width: 414, height: 896 }), // Dimensions API
+            () => setNetworkState('cellular'), // NetInfo API  
+            () => console.log('Native log call'), // Console API
+          ];
+
+          bridgeOperations.forEach((op, index) => {
+            setTimeout(op, index * 10); // Stagger operations
+          });
+        }, []);
+
+        return (
+          <Card testID="bridge-card">
+            <Button 
+              title={`Screen: ${dimensions.width}x${dimensions.height}`}
+              onPress={() => {}}
+              testID="dimensions-info"
+            />
+            <Button 
+              title={`Network: ${networkState}`}
+              onPress={() => {}}
+              testID="network-info"
+            />
+            {/* Simulate frequent bridge calls */}
+            {Array.from({ length: 10 }, (_, i) => (
+              <Button 
+                key={i}
+                title={`Bridge Operation ${i}`}
+                onPress={() => {
+                  // Simulate native method calls
+                  console.log(`Native operation ${i}`);
+                }}
+                testID={`bridge-op-${i}`}
+              />
+            ))}
+          </Card>
+        );
+      };
+
+      const start = performance.now();
+      
+      const { getByTestId } = render(<BridgeIntensiveComponent />);
+      
+      const end = performance.now();
+      const renderTime = end - start;
+
+      // Should handle multiple bridge operations efficiently
+      expect(renderTime).toBeLessThan(100); // Bridge calls should be fast in test env
+      
+      // Verify components rendered correctly
+      expect(getByTestId('bridge-card')).toBeTruthy();
+      expect(getByTestId('dimensions-info')).toBeTruthy();
+      expect(getByTestId('network-info')).toBeTruthy();
+      expect(getByTestId('bridge-op-0')).toBeTruthy();
+
+      console.log('React Native Bridge Performance:', {
+        renderTime: `${renderTime.toFixed(3)}ms`,
+        bridgeOperations: 10,
+        averagePerOperation: `${(renderTime / 10).toFixed(3)}ms`,
+        target: '<100ms for bridge-intensive components'
+      });
+    });
+
+    test('should measure startup performance simulation', async () => {
+      // Simulate app startup sequence
+      const AppStartupSimulation = () => {
+        const [phase, setPhase] = useState('initializing');
+        const [progress, setProgress] = useState(0);
+        
+        useEffect(() => {
+          const simulateStartup = async () => {
+            const phases = [
+              { name: 'initializing', duration: 50, progress: 20 },
+              { name: 'loading_config', duration: 100, progress: 40 },
+              { name: 'connecting_services', duration: 150, progress: 60 },
+              { name: 'loading_assets', duration: 200, progress: 80 },
+              { name: 'ready', duration: 50, progress: 100 }
+            ];
+
+            for (const phaseConfig of phases) {
+              setPhase(phaseConfig.name);
+              setProgress(phaseConfig.progress);
+              
+              // Simulate phase work
+              await new Promise(resolve => setTimeout(resolve, phaseConfig.duration));
+            }
+          };
+
+          simulateStartup();
+        }, []);
+
+        return (
+          <Card testID="startup-card">
+            <Button 
+              title={`Startup Phase: ${phase}`}
+              onPress={() => {}}
+              testID="startup-phase"
+            />
+            <Button 
+              title={`Progress: ${progress}%`}
+              onPress={() => {}}
+              testID="startup-progress"
+            />
+            {phase === 'ready' && (
+              <Button 
+                title="App Ready!"
+                onPress={() => {}}
+                testID="app-ready"
+              />
+            )}
+          </Card>
+        );
+      };
+
+      const start = performance.now();
+      
+      const { getByTestId, queryByTestId } = render(<AppStartupSimulation />);
+      
+      // Should show initial phase
+      expect(getByTestId('startup-phase')).toBeTruthy();
+      
+      // Wait for startup to complete
+      let attempts = 0;
+      const maxAttempts = 100; // 10 seconds
+      
+      while (attempts < maxAttempts && !queryByTestId('app-ready')) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      const end = performance.now();
+      const startupTime = end - start;
+
+      // Should complete startup within mobile target time
+      expect(queryByTestId('app-ready')).toBeTruthy();
+      expect(startupTime).toBeLessThan(2000); // Target: <2s cold start
+
+      console.log('Startup Performance Simulation:', {
+        startupTime: `${startupTime.toFixed(3)}ms`,
+        target: '<2000ms for mobile app startup',
+        phases: 5,
+        attempts
+      });
+    });
+  });
 });
