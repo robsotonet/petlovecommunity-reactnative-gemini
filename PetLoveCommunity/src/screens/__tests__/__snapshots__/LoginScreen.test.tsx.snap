@@ -4,12 +4,26 @@ exports[`LoginScreen Component Rendering should have proper component structure 
 <View
   style={
     {
+      "backgroundColor": "#F7FFF7",
       "flex": 1,
       "justifyContent": "center",
       "padding": 20,
     }
   }
 >
+  <Text
+    style={
+      {
+        "color": "#1A535C",
+        "fontSize": 24,
+        "fontWeight": "bold",
+        "marginBottom": 30,
+        "textAlign": "center",
+      }
+    }
+  >
+    Welcome to Pet Love Community
+  </Text>
   <View>
     <Text
       testID="input-label"
@@ -38,6 +52,7 @@ exports[`LoginScreen Component Rendering should have proper component structure 
     />
   </View>
   <TouchableOpacity
+    disabled={false}
     onPress={[Function]}
     style={
       {

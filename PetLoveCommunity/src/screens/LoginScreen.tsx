@@ -86,7 +86,7 @@ const LoginScreen: React.FC = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="login-screen">
       <Text style={styles.title}>Welcome to Pet Love Community</Text>
       
       <Input 

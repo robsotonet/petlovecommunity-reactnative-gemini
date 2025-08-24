@@ -5,14 +5,95 @@ import React from 'react';
 import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../LoginScreen';
 
-// Mock the useAuth hook
+// Mock React Native components first
+jest.mock('react-native', () => {
+  const React = require('react');
+  
+  return {
+    Platform: { OS: 'ios' },
+    StyleSheet: {
+      create: jest.fn(styles => styles),
+      flatten: jest.fn(styles => styles),
+    },
+    useColorScheme: jest.fn(() => 'light'),
+    // Mock React Native components
+    TouchableOpacity: ({ children, onPress, style, testID, disabled, ...props }: any) =>
+      React.createElement('TouchableOpacity', { 
+        onPress: disabled ? undefined : onPress, 
+        style, 
+        testID,
+        disabled,
+        ...props 
+      }, children),
+    Text: ({ children, style, ...props }: any) =>
+      React.createElement('Text', { style, ...props }, children),
+    TextInput: ({ value, onChangeText, style, placeholder, testID, secureTextEntry, accessibilityLabel, accessibilityHint, ...props }: any) =>
+      React.createElement('TextInput', { 
+        value, 
+        onChangeText, 
+        style, 
+        placeholder, 
+        testID,
+        secureTextEntry,
+        accessibilityLabel, 
+        accessibilityHint,
+        ...props 
+      }),
+    View: ({ children, style, testID, ...props }: any) =>
+      React.createElement('View', { style, testID, ...props }, children),
+    ActivityIndicator: ({ size, color, ...props }: any) =>
+      React.createElement('ActivityIndicator', { size, color, ...props }),
+    Alert: {
+      alert: jest.fn(),
+    },
+  };
+});
+
+// Mock colors module
+jest.mock('../../styles/colors', () => ({
+  getColors: jest.fn(() => ({
+    primary: {
+      coral: '#FF6B6B',
+      teal: '#4ECDC4',
+    },
+    neutral: {
+      beige: '#F7FFF7',
+      midnight: '#1A535C',
+      lightGray: '#CCCCCC',
+      darkGray: '#666666',
+    },
+    extended: {
+      coralVariations: {
+        light: '#FF8E8E',
+        dark: '#E55555',
+      },
+      tealVariations: {
+        light: '#6ED4CC',
+        dark: '#3BB5B0',
+        background: '#E8F8F7',
+      },
+      textVariations: {
+        secondary: '#2C6B73',
+        tertiary: '#6C757D',
+      },
+    },
+    semantic: {
+      success: '#00B894',
+      warning: '#FDCB6E',
+      error: '#E74C3C',
+      info: '#74B9FF',
+    },
+  })),
+}));
+
+// Mock the useAuth hook from AuthProvider
 const mockLogin = jest.fn();
-jest.mock('../../hooks/useAuth', () => ({
+jest.mock('../../hooks/AuthProvider', () => ({
   useAuth: () => ({
     login: mockLogin,
     isLoggedIn: false,
+    isLoading: false,
     logout: jest.fn(),
-    user: null,
   }),
 }));
 
@@ -177,71 +258,260 @@ describe('LoginScreen', () => {
     });
   });
 
-  describe('Login Functionality', () => {
-    test('should call login with username and password when login button is pressed', () => {
+  describe('Form Validation', () => {
+    test('should show username required error when username is empty', () => {
+      render(<LoginScreen />);
+      
+      const loginButton = screen.getByText('Login');
+      fireEvent.press(loginButton);
+      
+      expect(screen.getByText('Username is required')).toBeTruthy();
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+
+    test('should show password required error when password is empty', () => {
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.press(loginButton);
+      
+      expect(screen.getByText('Password is required')).toBeTruthy();
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+
+    test('should show username length error when username is too short', () => {
       render(<LoginScreen />);
       
       const usernameInput = screen.getByPlaceholderText('Username');
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
-      // Fill in the form
-      fireEvent.changeText(usernameInput, 'testuser');
-      fireEvent.changeText(passwordInput, 'testpassword');
-      
-      // Submit the form
+      fireEvent.changeText(usernameInput, 'ab'); // Only 2 characters
+      fireEvent.changeText(passwordInput, 'validpassword');
       fireEvent.press(loginButton);
       
-      expect(mockLogin).toHaveBeenCalledWith('testuser', 'testpassword');
-      expect(mockLogin).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Username must be at least 3 characters')).toBeTruthy();
+      expect(mockLogin).not.toHaveBeenCalled();
     });
 
-    test('should call login with empty credentials if no input provided', () => {
-      render(<LoginScreen />);
-      
-      const loginButton = screen.getByText('Login');
-      
-      // Submit without filling form
-      fireEvent.press(loginButton);
-      
-      expect(mockLogin).toHaveBeenCalledWith('', '');
-      expect(mockLogin).toHaveBeenCalledTimes(1);
-    });
-
-    test('should handle partial form completion', () => {
-      render(<LoginScreen />);
-      
-      const usernameInput = screen.getByPlaceholderText('Username');
-      const loginButton = screen.getByText('Login');
-      
-      // Fill only username
-      fireEvent.changeText(usernameInput, 'testuser');
-      
-      fireEvent.press(loginButton);
-      
-      expect(mockLogin).toHaveBeenCalledWith('testuser', '');
-    });
-
-    test('should handle multiple login attempts', () => {
+    test('should show password length error when password is too short', () => {
       render(<LoginScreen />);
       
       const usernameInput = screen.getByPlaceholderText('Username');
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
-      // First attempt
-      fireEvent.changeText(usernameInput, 'user1');
-      fireEvent.changeText(passwordInput, 'pass1');
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, '12345'); // Only 5 characters
       fireEvent.press(loginButton);
       
-      // Second attempt with different credentials
-      fireEvent.changeText(usernameInput, 'user2');
-      fireEvent.changeText(passwordInput, 'pass2');
+      expect(screen.getByText('Password must be at least 6 characters')).toBeTruthy();
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+
+    test('should validate whitespace-only inputs', () => {
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, '   '); // Only spaces
+      fireEvent.changeText(passwordInput, '\t\n'); // Only whitespace
       fireEvent.press(loginButton);
       
-      expect(mockLogin).toHaveBeenCalledTimes(2);
-      expect(mockLogin).toHaveBeenNthCalledWith(1, 'user1', 'pass1');
-      expect(mockLogin).toHaveBeenNthCalledWith(2, 'user2', 'pass2');
+      expect(screen.getByText('Username is required')).toBeTruthy();
+      expect(mockLogin).not.toHaveBeenCalled();
+    });
+
+    test('should proceed with login when validation passes', async () => {
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      expect(mockLogin).toHaveBeenCalledWith('validuser', 'validpassword');
+      expect(mockLogin).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Loading States', () => {
+    test('should show loading state during login', async () => {
+      // Make login function take some time to resolve
+      mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      // Check loading state
+      expect(screen.getByText('Logging in...')).toBeTruthy();
+      expect(screen.getByText('Authenticating...')).toBeTruthy();
+      
+      // Wait for login to complete
+      await waitFor(() => {
+        expect(screen.queryByText('Logging in...')).toBeFalsy();
+      });
+    });
+
+    test('should disable inputs during loading', () => {
+      mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      // Inputs should be disabled during loading
+      expect(usernameInput.props.editable).toBe(false);
+      expect(passwordInput.props.editable).toBe(false);
+      expect(loginButton.props.disabled).toBe(true);
+    });
+
+    test('should re-enable inputs after login completes', async () => {
+      mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 50)));
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      // Wait for login to complete
+      await waitFor(() => {
+        expect(screen.queryByText('Logging in...')).toBeFalsy();
+      });
+      
+      // Inputs should be re-enabled
+      expect(usernameInput.props.editable).toBe(true);
+      expect(passwordInput.props.editable).toBe(true);
+      expect(loginButton.props.disabled).toBe(false);
+    });
+  });
+
+  describe('Error Handling', () => {
+    test('should display error message when login fails', async () => {
+      const errorMessage = 'Invalid credentials';
+      mockLogin.mockRejectedValueOnce(new Error(errorMessage));
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      await waitFor(() => {
+        expect(screen.getByText(errorMessage)).toBeTruthy();
+      });
+      
+      // Should not be loading anymore
+      expect(screen.queryByText('Logging in...')).toBeFalsy();
+    });
+
+    test('should handle non-Error objects gracefully', async () => {
+      mockLogin.mockRejectedValueOnce('String error');
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Login failed. Please try again.')).toBeTruthy();
+      });
+    });
+
+    test('should clear previous errors when new login attempt starts', async () => {
+      // First attempt fails
+      mockLogin.mockRejectedValueOnce(new Error('Network error'));
+      
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
+      
+      // Wait for error to appear
+      await waitFor(() => {
+        expect(screen.getByText('Network error')).toBeTruthy();
+      });
+      
+      // Second attempt should clear error before starting
+      mockLogin.mockResolvedValueOnce(undefined);
+      fireEvent.press(loginButton);
+      
+      // Error should be cleared immediately
+      expect(screen.queryByText('Network error')).toBeFalsy();
+    });
+
+    test('should clear error when username changes', () => {
+      render(<LoginScreen />);
+      
+      const usernameInput = screen.getByPlaceholderText('Username');
+      const loginButton = screen.getByText('Login');
+      
+      // First trigger an error by clicking login with empty form
+      fireEvent.press(loginButton);
+      expect(screen.getByText('Username is required')).toBeTruthy();
+      
+      // Then type in username - should clear error
+      fireEvent.changeText(usernameInput, 'test');
+      
+      const errorMessage = screen.queryByText('Username is required');
+      expect(errorMessage).toBeFalsy();
+    });
+
+    test('should clear error when password changes', () => {
+      render(<LoginScreen />);
+      
+      const passwordInput = screen.getByPlaceholderText('Password');
+      const loginButton = screen.getByText('Login');
+      
+      // First trigger an error by clicking login with empty form
+      fireEvent.press(loginButton);
+      expect(screen.getByText('Username is required')).toBeTruthy();
+      
+      // Then type in password - should clear error
+      fireEvent.changeText(passwordInput, 'test');
+      
+      const errorMessage = screen.queryByText('Username is required');
+      expect(errorMessage).toBeFalsy();
     });
   });
 
@@ -379,6 +649,20 @@ describe('LoginScreen', () => {
       
       expect(screen.getByText('Username')).toBeTruthy();
       expect(screen.getByText('Login')).toBeTruthy();
+    });
+  });
+
+  describe('Color System Integration', () => {
+    test('should use design system colors', () => {
+      // This test verifies the component integrates with useColors hook
+      expect(() => render(<LoginScreen />)).not.toThrow();
+    });
+
+    test('should render with proper styling', () => {
+      const { toJSON } = render(<LoginScreen />);
+      
+      // Should render complete component tree with styles
+      expect(toJSON()).toBeTruthy();
     });
   });
 });

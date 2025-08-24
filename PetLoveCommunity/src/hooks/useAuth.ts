@@ -74,7 +74,7 @@ export const useAuth = () => {
       // Store credentials securely
       await authService.setCredentials(username, response.token);
       setIsLoggedIn(true);
-      console.log('useAuth: Login successful for user:', response.user.displayName);
+      console.log('useAuth: Login successful for user:', response.user?.displayName);
       
     } catch (error) {
       console.error('useAuth: Login failed:', error);

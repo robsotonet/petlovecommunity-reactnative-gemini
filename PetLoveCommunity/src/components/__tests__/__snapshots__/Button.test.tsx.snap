@@ -1,0 +1,353 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button Component Basic Rendering should have proper component structure 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": false,
+    }
+  }
+  disabled={false}
+  onPress={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#FF6B6B",
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#FFFFFF",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Button Types and Styling should apply primary type when type prop is undefined 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Default"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": false,
+    }
+  }
+  disabled={false}
+  onPress={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#FF6B6B",
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#FFFFFF",
+        },
+      ]
+    }
+  >
+    Default
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Button Types and Styling should render primary button with coral background by default 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": false,
+    }
+  }
+  disabled={false}
+  onPress={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#FF6B6B",
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#FFFFFF",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Button Types and Styling should render secondary button with teal background 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": false,
+    }
+  }
+  disabled={false}
+  onPress={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#4ECDC4",
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#FFFFFF",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Disabled State should apply disabled styling regardless of button type 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": true,
+    }
+  }
+  disabled={true}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#E5E5E5",
+        "opacity": 0.6,
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#666666",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Disabled State should apply disabled styling regardless of button type 2`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": true,
+    }
+  }
+  disabled={true}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#E5E5E5",
+        "opacity": 0.6,
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#666666",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Disabled State should render disabled button with appropriate styling 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": true,
+    }
+  }
+  disabled={true}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#E5E5E5",
+        "opacity": 0.6,
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#666666",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`Button Component Text Content and Display should maintain text contrast for disabled state 1`] = `
+<TouchableOpacity
+  accessibilityLabel="Test Button"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "disabled": true,
+    }
+  }
+  disabled={true}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 24,
+        "paddingVertical": 12,
+      },
+      {
+        "backgroundColor": "#E5E5E5",
+        "opacity": 0.6,
+      },
+    ]
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "fontSize": 16,
+          "fontWeight": "500",
+        },
+        {
+          "color": "#666666",
+        },
+      ]
+    }
+  >
+    Test Button
+  </Text>
+</TouchableOpacity>
+`;

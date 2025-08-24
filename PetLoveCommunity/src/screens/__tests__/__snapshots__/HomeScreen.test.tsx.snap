@@ -1,20 +1,46 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`HomeScreen Component Rendering should have proper container structure 1`] = `
+exports[`HomeScreen Component Structure should have correct component hierarchy 1`] = `
 <View
   style={
     {
       "alignItems": "center",
+      "backgroundColor": "#F7FFF7",
       "flex": 1,
       "justifyContent": "center",
+      "padding": 20,
     }
   }
 >
-  <Text>
-    Welcome!
+  <Text
+    style={
+      {
+        "color": "#1A535C",
+        "fontSize": 28,
+        "fontWeight": "bold",
+        "marginBottom": 10,
+        "textAlign": "center",
+      }
+    }
+  >
+    Welcome to Pet Love Community!
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#1A535C",
+        "fontSize": 18,
+        "marginBottom": 40,
+        "opacity": 0.8,
+        "textAlign": "center",
+      }
+    }
+  >
+    Welcome back!
   </Text>
   <TouchableOpacity
-    onPress={[MockFunction]}
+    disabled={false}
+    onPress={[Function]}
     testID="button"
   >
     <Text>
