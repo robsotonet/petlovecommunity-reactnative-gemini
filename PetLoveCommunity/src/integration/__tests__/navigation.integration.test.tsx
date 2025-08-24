@@ -12,31 +12,8 @@ import counterReducer from '../../features/counter/counterSlice';
 import { AuthProvider } from '../../hooks/AuthProvider';
 import RootNavigator from '../../navigation/RootNavigator';
 
-// Mock React Native
-jest.mock('react-native', () => ({
-  Platform: { OS: 'ios' },
-  StyleSheet: {
-    create: jest.fn(styles => styles),
-  },
-}));
-
-// Mock navigation actions
-const mockNavigate = jest.fn();
-const mockGoBack = jest.fn();
-const mockReset = jest.fn();
-const mockCanGoBack = jest.fn(() => false);
-
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-    goBack: mockGoBack,
-    reset: mockReset,
-    canGoBack: mockCanGoBack,
-  }),
-  useFocusEffect: jest.fn((fn) => fn()),
-  useIsFocused: jest.fn(() => true),
-}));
+// Import standardized React Native mocks
+import { mockNavigationActions, resetMocks } from './__setup__/reactNativeMocks';
 
 // Mock screens with navigation capabilities
 jest.mock('../../screens/LoginScreen', () => {
@@ -98,47 +75,6 @@ jest.mock('../../components/LoadingScreen', () => {
   };
 });
 
-// Mock AsyncStorage
-const mockAsyncStorage = {
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-  removeItem: jest.fn(() => Promise.resolve()),
-  clear: jest.fn(() => Promise.resolve()),
-};
-
-(AsyncStorage as any).mockImplementation(mockAsyncStorage);
-
-// Mock secure storage
-jest.mock('../../utils/secureStorage', () => ({
-  secureStorage: {
-    getItem: jest.fn(() => Promise.resolve(null)),
-    setItem: jest.fn(() => Promise.resolve()),
-    removeItem: jest.fn(() => Promise.resolve()),
-    getAllKeys: jest.fn(() => Promise.resolve([])),
-    clear: jest.fn(() => Promise.resolve()),
-    isAvailable: jest.fn(() => Promise.resolve(true)),
-  },
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-  removeItem: jest.fn(() => Promise.resolve()),
-}));
-
-jest.mock('react-native-device-info', () => ({
-  getUniqueId: jest.fn(() => Promise.resolve('test-device-id')),
-  getVersion: jest.fn(() => '1.0.0'),
-}));
-
-jest.mock('../../config/constants', () => ({
-  STORAGE_KEYS: {
-    AUTH_TOKEN: 'AUTH_TOKEN',
-    USER_DATA: 'USER_DATA',
-  },
-}));
-
-jest.mock('../../services/correlationIdService', () => ({
-  getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-id')),
-}));
-
 // Create test store
 const createTestStore = () => {
   return configureStore({
@@ -157,9 +93,9 @@ describe('Navigation Integration Tests', () => {
   let store: ReturnType<typeof createTestStore>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetMocks();
     store = createTestStore();
-    mockAsyncStorage.getItem.mockResolvedValue(null);
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
   });
 
   describe('Authentication-Based Navigation', () => {
@@ -183,7 +119,7 @@ describe('Navigation Integration Tests', () => {
     });
 
     test('should render home screen when authenticated', async () => {
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'AUTH_TOKEN') {
           return Promise.resolve(JSON.stringify('valid-token'));
         }
@@ -217,7 +153,7 @@ describe('Navigation Integration Tests', () => {
         resolveAuth = resolve;
       });
 
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'AUTH_TOKEN') {
           return authPromise;
         }
@@ -271,11 +207,11 @@ describe('Navigation Integration Tests', () => {
       const loginButton = screen.getByTestId('login-button');
       fireEvent.press(loginButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
+      expect(mockNavigationActions.navigate).toHaveBeenCalledWith('Home');
     });
 
     test('should handle logout navigation', async () => {
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'AUTH_TOKEN') {
           return Promise.resolve(JSON.stringify('valid-token'));
         }
@@ -302,7 +238,7 @@ describe('Navigation Integration Tests', () => {
       const logoutButton = screen.getByTestId('logout-button');
       fireEvent.press(logoutButton);
 
-      expect(mockReset).toHaveBeenCalledWith({
+      expect(mockNavigationActions.reset).toHaveBeenCalledWith({
         index: 0,
         routes: [{ name: 'Login' }],
       });
@@ -366,7 +302,7 @@ describe('Navigation Integration Tests', () => {
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(1000);
-      expect(mockNavigate).toHaveBeenCalledTimes(10);
+      expect(mockNavigationActions.navigate).toHaveBeenCalledTimes(10);
     });
 
     test('should minimize re-renders during navigation', async () => {
@@ -399,7 +335,7 @@ describe('Navigation Integration Tests', () => {
   describe('Navigation Error Handling', () => {
     test('should handle navigation errors gracefully', async () => {
       // Mock navigation error
-      mockNavigate.mockImplementationOnce(() => {
+      mockNavigationActions.navigate.mockImplementationOnce(() => {
         throw new Error('Navigation error');
       });
 
@@ -426,7 +362,7 @@ describe('Navigation Integration Tests', () => {
 
     test('should handle invalid navigation states', async () => {
       // Mock invalid auth state
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'AUTH_TOKEN') {
           return Promise.resolve('invalid-token-format');
         }
@@ -454,7 +390,7 @@ describe('Navigation Integration Tests', () => {
 
   describe('Deep Linking Integration', () => {
     test('should handle deep link navigation when authenticated', async () => {
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'AUTH_TOKEN') {
           return Promise.resolve(JSON.stringify('valid-token'));
         }
@@ -556,7 +492,7 @@ describe('Navigation Integration Tests', () => {
 
     test('should persist navigation state with Redux', async () => {
       // Mock persisted navigation state
-      mockAsyncStorage.getItem.mockImplementation((key) => {
+      (AsyncStorage.getItem as jest.Mock).mockImplementation((key) => {
         if (key === 'persist:root') {
           return Promise.resolve(JSON.stringify({
             counter: JSON.stringify({ value: 5 }),
@@ -640,7 +576,7 @@ describe('Navigation Integration Tests', () => {
       const loginButton = screen.getByTestId('login-button');
       fireEvent.press(loginButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
+      expect(mockNavigationActions.navigate).toHaveBeenCalledWith('Home');
     });
   });
 

@@ -8,9 +8,10 @@ interface ButtonProps {
   type?: 'primary' | 'secondary';
   disabled?: boolean;
   accessibilityLabel?: string;
+  testID?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disabled = false, accessibilityLabel }) => {
+const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disabled = false, accessibilityLabel, testID }) => {
   const colors = useColors();
   
   const getButtonStyle = () => {
@@ -35,6 +36,7 @@ const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disab
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel || title}
       accessibilityState={{ disabled }}
+      testID={testID}
     >
       <Text style={[styles.text, getTextStyle()]}>{title}</Text>
     </TouchableOpacity>

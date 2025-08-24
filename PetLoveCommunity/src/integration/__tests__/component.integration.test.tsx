@@ -11,49 +11,8 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 
-// Mock React Native
-jest.mock('react-native', () => ({
-  Platform: { OS: 'ios' },
-  StyleSheet: {
-    create: jest.fn(styles => styles),
-  },
-  Dimensions: {
-    get: jest.fn(() => ({ width: 375, height: 812 })),
-  },
-  useColorScheme: jest.fn(() => 'light'),
-}));
-
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(() => Promise.resolve(null)),
-  setItem: jest.fn(() => Promise.resolve()),
-  removeItem: jest.fn(() => Promise.resolve()),
-  clear: jest.fn(() => Promise.resolve()),
-}));
-
-// Mock transaction service
-jest.mock('../../transactions/transactionService', () => ({
-  generateTransactionId: jest.fn(() => 'test-transaction-id'),
-  generateIdempotencyKey: jest.fn(() => 'test-idempotency-key'),
-}));
-
-// Mock correlation service
-jest.mock('../../services/correlationIdService', () => ({
-  getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-id')),
-}));
-
-// Mock constants
-jest.mock('../../config/constants', () => ({
-  COLORS: {
-    PRIMARY: '#FF6B6B',
-    SECONDARY: '#4ECDC4',
-    BACKGROUND: '#F7FFF7',
-    TEXT: '#1A535C',
-  },
-  STORAGE_KEYS: {
-    TRANSACTION_QUEUE: 'TRANSACTION_QUEUE',
-  },
-}));
+// Import standardized React Native mocks
+import { resetMocks } from './__setup__/reactNativeMocks';
 
 // Create test store
 const createTestStore = () => {
@@ -73,7 +32,7 @@ describe('Component Integration Tests', () => {
   let store: ReturnType<typeof createTestStore>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    resetMocks();
     store = createTestStore();
   });
 
@@ -107,9 +66,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      expect(screen.getByTestID('counter-card')).toBeTruthy();
-      expect(screen.getByTestID('increment-button')).toBeTruthy();
-      expect(screen.getByTestID('reset-button')).toBeTruthy();
+      expect(screen.getByTestId('counter-card')).toBeTruthy();
+      expect(screen.getByTestId('increment-button')).toBeTruthy();
+      expect(screen.getByTestId('reset-button')).toBeTruthy();
     });
 
     test('should handle component interactions correctly', () => {
@@ -119,8 +78,8 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const incrementButton = screen.getByTestID('increment-button');
-      const resetButton = screen.getByTestID('reset-button');
+      const incrementButton = screen.getByTestId('increment-button');
+      const resetButton = screen.getByTestId('reset-button');
 
       // Initial state
       expect(screen.getByText('Count: 0')).toBeTruthy();
@@ -197,10 +156,10 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      expect(screen.getByTestID('form-card')).toBeTruthy();
-      expect(screen.getByTestID('name-input')).toBeTruthy();
-      expect(screen.getByTestID('email-input')).toBeTruthy();
-      expect(screen.getByTestID('submit-button')).toBeTruthy();
+      expect(screen.getByTestId('form-card')).toBeTruthy();
+      expect(screen.getByTestId('name-input')).toBeTruthy();
+      expect(screen.getByTestId('email-input')).toBeTruthy();
+      expect(screen.getByTestId('submit-button')).toBeTruthy();
     });
 
     test('should handle form validation and submission flow', () => {
@@ -210,9 +169,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const nameInput = screen.getByTestID('name-input');
-      const emailInput = screen.getByTestID('email-input');
-      const submitButton = screen.getByTestID('submit-button');
+      const nameInput = screen.getByTestId('name-input');
+      const emailInput = screen.getByTestId('email-input');
+      const submitButton = screen.getByTestId('submit-button');
 
       // Initially disabled due to empty fields
       expect(submitButton.props.disabled).toBe(true);
@@ -228,8 +187,8 @@ describe('Component Integration Tests', () => {
       // Submit form
       fireEvent.press(submitButton);
       
-      expect(screen.getByTestID('success-card')).toBeTruthy();
-      expect(screen.getByTestID('success-message')).toBeTruthy();
+      expect(screen.getByTestId('success-card')).toBeTruthy();
+      expect(screen.getByTestId('success-message')).toBeTruthy();
     });
 
     test('should handle form reset after submission', () => {
@@ -239,9 +198,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const nameInput = screen.getByTestID('name-input');
-      const emailInput = screen.getByTestID('email-input');
-      const submitButton = screen.getByTestID('submit-button');
+      const nameInput = screen.getByTestId('name-input');
+      const emailInput = screen.getByTestId('email-input');
+      const submitButton = screen.getByTestId('submit-button');
 
       // Fill and submit form
       fireEvent.changeText(nameInput, 'John Doe');
@@ -249,15 +208,15 @@ describe('Component Integration Tests', () => {
       fireEvent.press(submitButton);
 
       // Should show success message
-      expect(screen.getByTestID('success-message')).toBeTruthy();
+      expect(screen.getByTestId('success-message')).toBeTruthy();
 
       // Reset form
-      const successMessage = screen.getByTestID('success-message');
+      const successMessage = screen.getByTestId('success-message');
       fireEvent.press(successMessage);
 
       // Should return to form view
-      expect(screen.getByTestID('name-input')).toBeTruthy();
-      expect(screen.getByTestID('email-input')).toBeTruthy();
+      expect(screen.getByTestId('name-input')).toBeTruthy();
+      expect(screen.getByTestId('email-input')).toBeTruthy();
     });
   });
 
@@ -289,7 +248,7 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      expect(screen.getByTestID('redux-counter-card')).toBeTruthy();
+      expect(screen.getByTestId('redux-counter-card')).toBeTruthy();
       expect(screen.getByText('Redux Count: 0')).toBeTruthy();
     });
 
@@ -310,8 +269,8 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const incrementButton = screen.getByTestID('redux-increment-button');
-      const decrementButton = screen.getByTestID('redux-decrement-button');
+      const incrementButton = screen.getByTestId('redux-increment-button');
+      const decrementButton = screen.getByTestId('redux-decrement-button');
 
       // Test increment
       fireEvent.press(incrementButton);
@@ -378,9 +337,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      expect(screen.getByTestID('composed-component')).toBeTruthy();
-      expect(screen.getByTestID('item-input')).toBeTruthy();
-      expect(screen.getByTestID('add-button')).toBeTruthy();
+      expect(screen.getByTestId('composed-component')).toBeTruthy();
+      expect(screen.getByTestId('item-input')).toBeTruthy();
+      expect(screen.getByTestId('add-button')).toBeTruthy();
     });
 
     test('should handle dynamic component creation and removal', () => {
@@ -390,30 +349,30 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const input = screen.getByTestID('item-input');
-      const addButton = screen.getByTestID('add-button');
+      const input = screen.getByTestId('item-input');
+      const addButton = screen.getByTestId('add-button');
 
       // Add first item
       fireEvent.changeText(input, 'First Item');
       fireEvent.press(addButton);
 
-      expect(screen.getByTestID('item-card-0')).toBeTruthy();
-      expect(screen.getByTestID('remove-button-0')).toBeTruthy();
+      expect(screen.getByTestId('item-card-0')).toBeTruthy();
+      expect(screen.getByTestId('remove-button-0')).toBeTruthy();
 
       // Add second item
       fireEvent.changeText(input, 'Second Item');
       fireEvent.press(addButton);
 
-      expect(screen.getByTestID('item-card-1')).toBeTruthy();
-      expect(screen.getByTestID('remove-button-1')).toBeTruthy();
+      expect(screen.getByTestId('item-card-1')).toBeTruthy();
+      expect(screen.getByTestId('remove-button-1')).toBeTruthy();
 
       // Remove first item
-      const removeButton0 = screen.getByTestID('remove-button-0');
+      const removeButton0 = screen.getByTestId('remove-button-0');
       fireEvent.press(removeButton0);
 
       // Only second item should remain, but now as index 0
       expect(screen.queryByTestId('item-card-1')).toBeNull();
-      expect(screen.getByTestID('item-card-0')).toBeTruthy();
+      expect(screen.getByTestId('item-card-0')).toBeTruthy();
     });
   });
 
@@ -458,19 +417,19 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const button = screen.getByTestID('nested-button');
-      const input = screen.getByTestID('nested-input');
+      const button = screen.getByTestId('nested-button');
+      const input = screen.getByTestId('nested-input');
 
       // Test button press
       fireEvent.press(button);
-      expect(screen.getByTestID('event-0')).toBeTruthy();
+      expect(screen.getByTestId('event-0')).toBeTruthy();
 
       // Test input focus/blur
       fireEvent(input, 'focus');
-      expect(screen.getByTestID('event-1')).toBeTruthy();
+      expect(screen.getByTestId('event-1')).toBeTruthy();
 
       fireEvent(input, 'blur');
-      expect(screen.getByTestID('event-2')).toBeTruthy();
+      expect(screen.getByTestId('event-2')).toBeTruthy();
     });
   });
 
@@ -512,9 +471,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const input1 = screen.getByTestID('input-1');
-      const input2 = screen.getByTestID('input-2');
-      const displayButton = screen.getByTestID('display-button');
+      const input1 = screen.getByTestId('input-1');
+      const input2 = screen.getByTestId('input-2');
+      const displayButton = screen.getByTestId('display-button');
 
       // Change first input
       fireEvent.changeText(input1, 'Synchronized value');
@@ -578,8 +537,8 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const addButton = screen.getByTestID('add-many-button');
-      const clearButton = screen.getByTestID('clear-button');
+      const addButton = screen.getByTestId('add-many-button');
+      const clearButton = screen.getByTestId('clear-button');
 
       const startTime = Date.now();
 
@@ -628,7 +587,7 @@ describe('Component Integration Tests', () => {
 
       // First render without error
       const { rerender } = render(<TestWrapper shouldError={false} />);
-      expect(screen.getByTestID('working-button')).toBeTruthy();
+      expect(screen.getByTestId('working-button')).toBeTruthy();
 
       // Component should handle errors
       expect(() => rerender(<TestWrapper shouldError={true} />)).toThrow();
@@ -683,9 +642,9 @@ describe('Component Integration Tests', () => {
         </Provider>
       );
 
-      const card = screen.getByTestID('accessible-card');
-      const input = screen.getByTestID('accessible-input');
-      const button = screen.getByTestID('accessible-button');
+      const card = screen.getByTestId('accessible-card');
+      const input = screen.getByTestId('accessible-input');
+      const button = screen.getByTestId('accessible-button');
 
       expect(card.props.accessibilityLabel).toBe('Accessible form container');
       expect(input.props.accessibilityLabel).toBe('Text input field');
@@ -695,7 +654,7 @@ describe('Component Integration Tests', () => {
       fireEvent.changeText(input, 'Test value');
       fireEvent.press(button);
 
-      const successText = screen.getByTestID('success-text');
+      const successText = screen.getByTestId('success-text');
       expect(successText.props.accessibilityRole).toBe('text');
     });
   });

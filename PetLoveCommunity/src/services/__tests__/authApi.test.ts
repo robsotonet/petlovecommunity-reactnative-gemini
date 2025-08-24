@@ -60,7 +60,7 @@ describe('AuthApi', () => {
     it('should reject invalid credentials', async () => {
       const credentials: LoginRequest = {
         username: 'invalid',
-        password: 'wrong',
+        password: 'wrongpass',
       };
 
       const loginPromise = authApi.login(credentials);
@@ -74,7 +74,7 @@ describe('AuthApi', () => {
     it('should reject credentials with wrong password', async () => {
       const credentials: LoginRequest = {
         username: 'testuser',
-        password: 'wrong',
+        password: 'wrongpass',
       };
 
       const loginPromise = authApi.login(credentials);
@@ -85,7 +85,7 @@ describe('AuthApi', () => {
       await expect(loginPromise).rejects.toThrow('Invalid username or password');
     });
 
-    it('should handle empty username', async () => {
+    it('should reject empty username with validation error', async () => {
       const credentials: LoginRequest = {
         username: '',
         password: 'password123',
@@ -95,15 +95,12 @@ describe('AuthApi', () => {
       
       // Fast-forward timers
       jest.advanceTimersByTime(1200);
-      
-      const response = await loginPromise;
 
-      // Empty username still gets processed as valid in current implementation
-      expect(response.success).toBe(true);
-      expect(response.user?.username).toBe('');
+      // Empty username should now be rejected with validation error
+      await expect(loginPromise).rejects.toThrow('Username is required');
     });
 
-    it('should handle empty password', async () => {
+    it('should reject empty password with validation error', async () => {
       const credentials: LoginRequest = {
         username: 'testuser',
         password: '',
@@ -113,23 +110,91 @@ describe('AuthApi', () => {
       
       // Fast-forward timers
       jest.advanceTimersByTime(1200);
+
+      // Empty password should now be rejected with validation error
+      await expect(loginPromise).rejects.toThrow('Password is required');
+    });
+
+    it('should reject username shorter than 3 characters', async () => {
+      const credentials: LoginRequest = {
+        username: 'ab',
+        password: 'password123',
+      };
+
+      const loginPromise = authApi.login(credentials);
       
+      // Fast-forward timers
+      jest.advanceTimersByTime(1200);
+
+      await expect(loginPromise).rejects.toThrow('Username must be at least 3 characters long');
+    });
+
+    it('should reject password shorter than 6 characters', async () => {
+      const credentials: LoginRequest = {
+        username: 'testuser',
+        password: '12345',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      
+      // Fast-forward timers
+      jest.advanceTimersByTime(1200);
+
+      await expect(loginPromise).rejects.toThrow('Password must be at least 6 characters long');
+    });
+
+    it('should reject whitespace-only username', async () => {
+      const credentials: LoginRequest = {
+        username: '   ',
+        password: 'password123',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      
+      // Fast-forward timers
+      jest.advanceTimersByTime(1200);
+
+      await expect(loginPromise).rejects.toThrow('Username is required');
+    });
+
+    it('should reject whitespace-only password', async () => {
+      const credentials: LoginRequest = {
+        username: 'testuser',
+        password: '      ',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      
+      // Fast-forward timers
+      jest.advanceTimersByTime(1200);
+
+      await expect(loginPromise).rejects.toThrow('Password is required');
+    });
+
+    it('should sanitize and normalize username', async () => {
+      const credentials: LoginRequest = {
+        username: '  TestUser  ',
+        password: 'password123',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      jest.advanceTimersByTime(1200);
       const response = await loginPromise;
 
-      // Empty password still gets processed as valid in current implementation
-      expect(response.success).toBe(true);
+      // Username should be trimmed and lowercased
       expect(response.user?.username).toBe('testuser');
+      expect(response.success).toBe(true);
     });
 
     it('should generate unique tokens for different logins', async () => {
       const credentials1: LoginRequest = {
-        username: 'user1',
-        password: 'pass1',
+        username: 'user123',
+        password: 'password1',
       };
       
       const credentials2: LoginRequest = {
-        username: 'user2',
-        password: 'pass2',
+        username: 'user456',
+        password: 'password2',
       };
 
       const loginPromise1 = authApi.login(credentials1);
@@ -141,15 +206,15 @@ describe('AuthApi', () => {
       const response2 = await loginPromise2;
 
       expect(response1.token).not.toBe(response2.token);
-      expect(response1.user?.username).toBe('user1');
-      expect(response2.user?.username).toBe('user2');
+      expect(response1.user?.username).toBe('user123');
+      expect(response2.user?.username).toBe('user456');
     });
 
     it('should handle very long usernames', async () => {
       const longUsername = 'a'.repeat(1000);
       const credentials: LoginRequest = {
         username: longUsername,
-        password: 'password',
+        password: 'password123',
       };
 
       const loginPromise = authApi.login(credentials);
@@ -157,7 +222,8 @@ describe('AuthApi', () => {
       const response = await loginPromise;
 
       expect(response.success).toBe(true);
-      expect(response.user?.username).toBe(longUsername);
+      // Username should be sanitized (trimmed and lowercased)
+      expect(response.user?.username).toBe(longUsername.toLowerCase());
     });
   });
 
@@ -174,7 +240,8 @@ describe('AuthApi', () => {
       await expect(logoutPromise).resolves.toBeUndefined();
     });
 
-    it('should handle logout with empty token', async () => {
+    it('should handle logout with empty token gracefully', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       const token = '';
 
       const logoutPromise = authApi.logout(token);
@@ -184,9 +251,15 @@ describe('AuthApi', () => {
       
       // Should not throw any errors even with empty token
       await expect(logoutPromise).resolves.toBeUndefined();
+      
+      // Should log warning for security monitoring
+      expect(consoleSpy).toHaveBeenCalledWith('AuthApi: Logout attempted with empty token');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('should handle logout with null token', async () => {
+    it('should handle logout with null token gracefully', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       const token = null as any;
 
       const logoutPromise = authApi.logout(token);
@@ -196,6 +269,11 @@ describe('AuthApi', () => {
       
       // Should not throw any errors even with null token
       await expect(logoutPromise).resolves.toBeUndefined();
+      
+      // Should log warning for security monitoring
+      expect(consoleSpy).toHaveBeenCalledWith('AuthApi: Logout attempted with empty token');
+      
+      consoleSpy.mockRestore();
     });
 
     it('should complete logout even if an error occurs internally', async () => {
@@ -419,7 +497,7 @@ describe('AuthApi', () => {
     it('should have appropriate response times for regular login', async () => {
       const credentials: LoginRequest = {
         username: 'regular_user',
-        password: 'password',
+        password: 'password123',
       };
 
       const loginPromise = authApi.login(credentials);
@@ -444,6 +522,66 @@ describe('AuthApi', () => {
       const result = await validatePromise;
       
       expect(typeof result).toBe('boolean');
+    });
+  });
+
+  describe('Security and Logging', () => {
+    it('should log security warnings for validation failures', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      const credentials: LoginRequest = {
+        username: '',
+        password: 'password123',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      jest.advanceTimersByTime(1200);
+
+      try {
+        await loginPromise;
+      } catch (error) {
+        // Expected to throw
+      }
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'AuthApi: Input validation failed:',
+        expect.objectContaining({
+          username: '[EMPTY]',
+          error: 'Username is required',
+          timestamp: expect.any(String),
+        })
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should log when username is provided for validation failures', async () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      const credentials: LoginRequest = {
+        username: 'ab',
+        password: 'password123',
+      };
+
+      const loginPromise = authApi.login(credentials);
+      jest.advanceTimersByTime(1200);
+
+      try {
+        await loginPromise;
+      } catch (error) {
+        // Expected to throw
+      }
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'AuthApi: Input validation failed:',
+        expect.objectContaining({
+          username: '[PROVIDED]',
+          error: 'Username must be at least 3 characters long',
+          timestamp: expect.any(String),
+        })
+      );
+
+      consoleWarnSpy.mockRestore();
     });
   });
 });

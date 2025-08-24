@@ -30,10 +30,35 @@ export interface AuthError {
 class AuthApi {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      console.log('AuthApi: Attempting server authentication for:', credentials.username);
+      // Input validation - Security Fix
+      if (!credentials.username || credentials.username.trim().length === 0) {
+        throw new Error('Username is required');
+      }
+      
+      if (!credentials.password || credentials.password.trim().length === 0) {
+        throw new Error('Password is required');
+      }
+      
+      // Additional security validation
+      if (credentials.username.trim().length < 3) {
+        throw new Error('Username must be at least 3 characters long');
+      }
+      
+      if (credentials.password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+      }
+      
+      // Sanitize inputs
+      const sanitizedUsername = credentials.username.trim().toLowerCase();
+      const sanitizedCredentials = {
+        username: sanitizedUsername,
+        password: credentials.password
+      };
+      
+      console.log('AuthApi: Attempting server authentication for:', sanitizedCredentials.username);
       
       // For development/demo purposes, simulate different response scenarios
-      if (credentials.username === 'demo' && credentials.password === 'demo123') {
+      if (sanitizedCredentials.username === 'demo' && sanitizedCredentials.password === 'demo123') {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1500));
         
@@ -42,7 +67,7 @@ class AuthApi {
           token: 'demo_jwt_token_' + Date.now(),
           user: {
             id: 'demo_user_123',
-            username: credentials.username,
+            username: sanitizedCredentials.username,
             email: 'demo@petlovecommunity.com',
             displayName: 'Demo User',
           },
@@ -51,31 +76,48 @@ class AuthApi {
       }
       
       // Simulate API validation failure for invalid credentials
-      if (credentials.username === 'invalid' || credentials.password === 'wrong') {
+      if (sanitizedCredentials.username === 'invalid' || sanitizedCredentials.password === 'wrongpass') {
         await new Promise(resolve => setTimeout(resolve, 1000));
         throw new Error('Invalid username or password');
       }
       
       // For any other credentials, simulate successful login
       // In production, this would make a real API call to your authentication endpoint
-      const response = await this.simulateApiCall(credentials);
+      const response = await this.simulateApiCall(sanitizedCredentials);
       
       console.log('AuthApi: Authentication successful');
       return response;
       
     } catch (error) {
-      console.error('AuthApi: Authentication failed:', error);
-      
+      // Log security violations for monitoring
       if (error instanceof Error) {
+        if (error.message.includes('Username is required') || 
+            error.message.includes('Password is required') ||
+            error.message.includes('must be at least')) {
+          console.warn('AuthApi: Input validation failed:', {
+            username: credentials?.username ? '[PROVIDED]' : '[EMPTY]',
+            error: error.message,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          console.error('AuthApi: Authentication failed:', error.message);
+        }
         throw error;
       }
       
+      console.error('AuthApi: Unexpected authentication error:', error);
       throw new Error('Authentication service unavailable. Please try again later.');
     }
   }
 
   async logout(token: string): Promise<void> {
     try {
+      // Input validation for logout
+      if (!token || token.trim().length === 0) {
+        console.warn('AuthApi: Logout attempted with empty token');
+        return; // Allow logout to proceed for security (local cleanup)
+      }
+      
       console.log('AuthApi: Logging out user');
       
       // Simulate logout API call
