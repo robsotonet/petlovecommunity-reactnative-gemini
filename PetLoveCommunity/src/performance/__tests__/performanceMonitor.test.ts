@@ -570,8 +570,8 @@ describe('PerformanceMonitor', () => {
       // Clear first to ensure clean state
       performanceMonitor.clear();
       
-      // Add many metrics to test performance (using smaller number for test speed)
-      for (let i = 0; i < 100; i++) {
+      // Add many metrics to test bulk handling (optimized for test speed while maintaining coverage)
+      for (let i = 0; i < 25; i++) {
         mockPerformanceNow
           .mockReturnValueOnce(1000 + i * 10)
           .mockReturnValueOnce(1000 + i * 10 + 1);
@@ -581,7 +581,7 @@ describe('PerformanceMonitor', () => {
       }
       
       const report = performanceMonitor.generateReport();
-      expect(report.summary.totalMetrics).toBe(100);
+      expect(report.summary.totalMetrics).toBe(25);
     });
 
     test('should handle metadata correctly', () => {

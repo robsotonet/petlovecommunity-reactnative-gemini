@@ -137,8 +137,8 @@ class SecureStorageService implements SecureStorageInterface {
    */
   async removeItem(key: string): Promise<void> {
     try {
-      // For critical authentication tokens, remove from Keychain
-      if (this.isCriticalKey(key)) {
+      // For critical authentication tokens, remove from Keychain if available
+      if (this.isCriticalKey(key) && Keychain) {
         await Keychain.resetInternetCredentials(`${this.appServiceName}_${key}`);
       } else {
         // For other data, remove from AsyncStorage
@@ -383,18 +383,31 @@ class SecureStorageService implements SecureStorageInterface {
     isSecure: boolean;
     features: string[];
     securityLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+    dependencies: {
+      keychain: boolean;
+      crypto: boolean;
+    };
   } {
+    const hasKeychain = !!Keychain;
+    const hasCrypto = !!CryptoJS;
+    const isFullySecure = hasKeychain && hasCrypto;
+    
     return {
       platform: Platform.OS,
-      isSecure: true, // Now using proper secure storage mechanisms
+      isSecure: isFullySecure,
       features: [
-        'AES-256-CBC encryption for non-critical data',
-        'Platform-specific Keychain/Keystore for critical tokens',
-        'Cryptographically secure key generation',
-        'Random IV for each encryption operation',
-        'Automatic key rotation capability',
+        hasKeychain ? 'Platform-specific Keychain/Keystore for critical tokens' : 'Critical tokens stored with encryption',
+        hasCrypto ? 'AES-256-CBC encryption for sensitive data' : 'XOR encryption fallback (install crypto-js for production)',
+        hasCrypto ? 'Cryptographically secure key generation' : 'Device-based key generation',
+        hasCrypto ? 'Random IV for each encryption operation' : 'Static key-based encryption',
+        hasKeychain ? 'Automatic key rotation capability' : 'Manual key management',
+        'Backward compatibility with legacy data',
       ],
-      securityLevel: 'HIGH',
+      securityLevel: isFullySecure ? 'HIGH' : hasCrypto ? 'MEDIUM' : 'LOW',
+      dependencies: {
+        keychain: hasKeychain,
+        crypto: hasCrypto,
+      },
     };
   }
 
@@ -402,6 +415,11 @@ class SecureStorageService implements SecureStorageInterface {
    * Test if Keychain is available on the device
    */
   async testKeychainAvailability(): Promise<boolean> {
+    if (!Keychain) {
+      console.warn('SecureStorage: react-native-keychain not installed');
+      return false;
+    }
+
     try {
       const testKey = 'keychain_availability_test';
       await Keychain.setInternetCredentials(testKey, 'test', 'test');
@@ -417,6 +435,11 @@ class SecureStorageService implements SecureStorageInterface {
    * Rotate encryption key (for enhanced security)
    */
   async rotateEncryptionKey(): Promise<void> {
+    if (!Keychain) {
+      console.warn('SecureStorage: Key rotation requires react-native-keychain');
+      throw new Error('Key rotation requires react-native-keychain');
+    }
+
     try {
       console.log('SecureStorage: Starting key rotation');
       
