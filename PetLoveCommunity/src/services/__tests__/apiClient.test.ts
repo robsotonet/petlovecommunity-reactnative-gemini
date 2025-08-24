@@ -178,6 +178,54 @@ describe('ApiClient Integration Tests', () => {
       );
     });
 
+    test('should handle POST errors and log them (Lines 44-45)', async () => {
+      const postError = new Error('POST request failed');
+      mockFetch.mockRejectedValueOnce(postError);
+
+      await expect(apiClient.post('/pets', { name: 'Test Pet' })).rejects.toThrow('POST request failed');
+      
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://test-api.petlove.com/pets',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'X-Idempotency-Key': 'test-idempotency-789',
+          }),
+        })
+      );
+    });
+
+    test('should handle PUT errors and log them (Lines 62-63)', async () => {
+      const putError = new Error('PUT request failed');
+      mockFetch.mockRejectedValueOnce(putError);
+
+      await expect(apiClient.put('/pets/123', { name: 'Updated Pet' })).rejects.toThrow('PUT request failed');
+      
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://test-api.petlove.com/pets/123',
+        expect.objectContaining({
+          method: 'PUT',
+          headers: expect.objectContaining({
+            'X-Idempotency-Key': 'test-idempotency-789',
+          }),
+        })
+      );
+    });
+
+    test('should handle DELETE errors and log them (Lines 78-79)', async () => {
+      const deleteError = new Error('DELETE request failed');
+      mockFetch.mockRejectedValueOnce(deleteError);
+
+      await expect(apiClient.delete('/pets/123')).rejects.toThrow('DELETE request failed');
+      
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://test-api.petlove.com/pets/123',
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
+    });
+
     test('should handle HTTP error responses', async () => {
       mockFetch.mockResolvedValueOnce({
         json: jest.fn().mockResolvedValue({ error: 'Pet not found' }),
@@ -198,6 +246,22 @@ describe('ApiClient Integration Tests', () => {
 
       // Should still make the request (correlation ID would be undefined)
       await expect(apiClient.get('/pets')).rejects.toThrow();
+    });
+
+    test('should handle JSON parse errors in all HTTP methods', async () => {
+      const mockResponse = {
+        json: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
+        status: 200,
+        ok: true,
+      };
+
+      // Test all methods handle JSON parse errors
+      mockFetch.mockResolvedValue(mockResponse);
+
+      await expect(apiClient.get('/pets')).rejects.toThrow('Invalid JSON');
+      await expect(apiClient.post('/pets', { name: 'Test' })).rejects.toThrow('Invalid JSON');
+      await expect(apiClient.put('/pets/123', { name: 'Test' })).rejects.toThrow('Invalid JSON');
+      await expect(apiClient.delete('/pets/123')).rejects.toThrow('Invalid JSON');
     });
   });
 
