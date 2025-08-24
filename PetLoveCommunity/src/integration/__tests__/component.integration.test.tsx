@@ -12,7 +12,7 @@ import Card from '../../components/Card';
 import Input from '../../components/Input';
 
 // Import standardized React Native mocks
-import { resetMocks } from './__setup__/reactNativeMocks';
+import { resetMocks } from '../__setup__/reactNativeMocks';
 
 // Create test store
 const createTestStore = () => {

@@ -13,64 +13,55 @@ import { AuthProvider } from '../../hooks/AuthProvider';
 import RootNavigator from '../../navigation/RootNavigator';
 
 // Import standardized React Native mocks
-import { mockNavigationActions, resetMocks } from './__setup__/reactNativeMocks';
+import { mockNavigationActions, resetMocks } from '../__setup__/reactNativeMocks';
 
 // Mock screens with navigation capabilities
 jest.mock('../../screens/LoginScreen', () => {
   const React = require('react');
-  const { View, Text, TouchableOpacity } = require('react-native');
   const { useNavigation } = require('@react-navigation/native');
   
   return function LoginScreen() {
     const navigation = useNavigation();
     
-    return (
-      <View testID="login-screen">
-        <Text>Login Screen</Text>
-        <TouchableOpacity 
-          testID="login-button"
-          onPress={() => navigation.navigate('Home' as never)}
-        >
-          <Text>Login</Text>
-        </TouchableOpacity>
-      </View>
+    return React.createElement('View', { testID: 'login-screen' },
+      React.createElement('Text', null, 'Login Screen'),
+      React.createElement('TouchableOpacity', {
+        testID: 'login-button',
+        onPress: () => navigation.navigate('Home' as never)
+      },
+        React.createElement('Text', null, 'Login')
+      )
     );
   };
 });
 
 jest.mock('../../screens/HomeScreen', () => {
   const React = require('react');
-  const { View, Text, TouchableOpacity } = require('react-native');
   const { useNavigation } = require('@react-navigation/native');
   
   return function HomeScreen() {
     const navigation = useNavigation();
     
-    return (
-      <View testID="home-screen">
-        <Text>Home Screen</Text>
-        <TouchableOpacity 
-          testID="logout-button"
-          onPress={() => navigation.reset({
-            index: 0,
-            routes: [{ name: 'Login' as never }],
-          })}
-        >
-          <Text>Logout</Text>
-        </TouchableOpacity>
-      </View>
+    return React.createElement('View', { testID: 'home-screen' },
+      React.createElement('Text', null, 'Home Screen'),
+      React.createElement('TouchableOpacity', {
+        testID: 'logout-button',
+        onPress: () => navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' as never }],
+        })
+      },
+        React.createElement('Text', null, 'Logout')
+      )
     );
   };
 });
 
 jest.mock('../../components/LoadingScreen', () => {
   const React = require('react');
-  const { View, Text } = require('react-native');
   return function LoadingScreen({ message }: { message: string }) {
-    return (
-      <View testID="loading-screen">
-        <Text>{message}</Text>
-      </View>
+    return React.createElement('View', { testID: 'loading-screen' },
+      React.createElement('Text', null, message)
     );
   };
 });

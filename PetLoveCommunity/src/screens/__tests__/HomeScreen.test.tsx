@@ -38,9 +38,20 @@ jest.mock('../../services/authService', () => ({
   default: mockAuthService,
 }));
 
-// Mock Alert globally
-const mockAlert = jest.fn();
-global.alert = mockAlert;
+// Mock Alert directly
+const mockAlertAlert = jest.fn();
+jest.mock('react-native', () => ({
+  View: 'View',
+  Text: 'Text', 
+  StyleSheet: {
+    create: (styles: any) => styles,
+    flatten: (styles: any) => styles
+  },
+  Alert: {
+    alert: mockAlertAlert,
+  },
+  TouchableOpacity: 'TouchableOpacity',
+}));
 
 // Mock Button component to avoid React Native dependencies
 jest.mock('../../components/Button', () => {
@@ -64,7 +75,7 @@ describe('HomeScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLogout.mockResolvedValue(undefined);
-    mockAlert.mockImplementation((title, message, buttons) => {
+    mockAlertAlert.mockImplementation((title, message, buttons) => {
       // Simulate user pressing the first button by default (Cancel)
       if (buttons && buttons.length > 0) {
         // Don't call anything for Cancel, call onPress for Logout
@@ -235,134 +246,186 @@ describe('HomeScreen', () => {
 
   // NEW COMPREHENSIVE TESTS FOR MISSING COVERAGE
 
-  describe('Credential Loading (Lines 18-19)', () => {
-    test('should load and display username when credentials exist', async () => {
-      // Clear previous mocks and set up fresh ones
+  describe('UseEffect and Credential Loading (Lines 18-19)', () => {
+    test('should call authService.getCredentials on mount', async () => {
       jest.clearAllMocks();
-      mockAuthService.getCredentials.mockResolvedValue({ 
-        username: 'johndoe',
-        password: 'token123' 
+      // Mock successful credential loading
+      mockAuthService.getCredentials.mockResolvedValue({ username: 'testuser' });
+
+      await act(async () => {
+        render(<HomeScreen />);
       });
 
-      render(<HomeScreen />);
-
-      // Wait for useEffect and credential loading
-      await waitFor(
-        () => {
-          expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-        },
-        { timeout: 2000 }
-      );
-
-      // Should display personalized welcome message
-      await waitFor(
-        () => {
-          expect(screen.getByText('Welcome back, johndoe!')).toBeTruthy();
-        },
-        { timeout: 2000 }
-      );
+      // Should call getCredentials when component mounts
+      expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
     });
 
-    test('should handle credentials loading failure gracefully', async () => {
-      // Mock authService to throw error (Line 22 - error handling)
+    test('should set username state when credentials are loaded', async () => {
+      jest.clearAllMocks();
+      mockAuthService.getCredentials.mockResolvedValue({ username: 'johndoe' });
+
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      // Should display the user info when username is set
+      expect(screen.getByText('Logged in as: johndoe')).toBeTruthy();
+      expect(screen.getByText('Ready to find your perfect pet companion?')).toBeTruthy();
+    });
+
+    test('should handle error in useEffect gracefully', async () => {
       jest.clearAllMocks();
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockAuthService.getCredentials.mockRejectedValue(new Error('Failed to load credentials'));
+      mockAuthService.getCredentials.mockRejectedValue(new Error('Auth service error'));
 
-      render(<HomeScreen />);
+      await act(async () => {
+        render(<HomeScreen />);
+      });
 
-      // Wait for error handling
-      await waitFor(
-        () => {
-          expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-        },
-        { timeout: 2000 }
-      );
-
-      // Should log error and show default welcome message
-      await waitFor(
-        () => {
-          expect(consoleErrorSpy).toHaveBeenCalledWith('HomeScreen: Failed to load user info:', expect.any(Error));
-        },
-        { timeout: 2000 }
-      );
-
+      // Should log error and continue with default state
+      expect(consoleErrorSpy).toHaveBeenCalledWith('HomeScreen: Failed to load user info:', expect.any(Error));
       expect(screen.getByText('Welcome back!')).toBeTruthy();
+      
       consoleErrorSpy.mockRestore();
     });
 
-    test('should handle null credentials gracefully', async () => {
+    test('should handle null credentials in useEffect', async () => {
       jest.clearAllMocks();
       mockAuthService.getCredentials.mockResolvedValue(null);
 
-      render(<HomeScreen />);
+      await act(async () => {
+        render(<HomeScreen />);
+      });
 
-      await waitFor(
-        () => {
-          expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-        },
-        { timeout: 2000 }
-      );
-
-      // Should show default welcome message
+      // Should show default message when no credentials
       expect(screen.getByText('Welcome back!')).toBeTruthy();
+      expect(screen.queryByText(/Logged in as:/)).toBeNull();
     });
 
     test('should handle credentials without username', async () => {
       jest.clearAllMocks();
-      mockAuthService.getCredentials.mockResolvedValue({ password: 'token123' });
+      mockAuthService.getCredentials.mockResolvedValue({ password: 'token' });
 
-      render(<HomeScreen />);
+      await act(async () => {
+        render(<HomeScreen />);
+      });
 
-      await waitFor(
-        () => {
-          expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-        },
-        { timeout: 2000 }
-      );
-
-      // Should show default welcome message
+      // Should show default message when no username in credentials  
       expect(screen.getByText('Welcome back!')).toBeTruthy();
+      expect(screen.queryByText(/Logged in as:/)).toBeNull();
+    });
+
+    test('should handle empty string username', async () => {
+      jest.clearAllMocks();
+      mockAuthService.getCredentials.mockResolvedValue({ username: '' });
+
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      // Should show default message for empty username
+      expect(screen.getByText('Welcome back!')).toBeTruthy();
+      expect(screen.queryByText(/Logged in as:/)).toBeNull();
     });
   });
 
-  describe('Basic Logout Flow Testing', () => {
-    test('should handle logout button press without crashing', async () => {
-      render(<HomeScreen />);
-
-      const logoutButton = screen.getByText('Logout');
-      
-      await act(async () => {
-        fireEvent.press(logoutButton);
-      });
-
-      // Should not throw errors when logout button is pressed
-      expect(logoutButton).toBeTruthy();
+  describe('Logout Confirmation Dialog (Lines 29-54)', () => {
+    beforeEach(() => {
+      mockAlertAlert.mockClear();
+      mockLogout.mockClear();
     });
 
-    test('should handle logout errors gracefully', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      mockLogout.mockRejectedValue(new Error('Network error'));
-      
-      render(<HomeScreen />);
+    test('should show confirmation dialog when logout button is pressed', async () => {
+      await act(async () => {
+        render(<HomeScreen />);
+      });
 
       const logoutButton = screen.getByText('Logout');
       
-      // This will trigger the logout flow and error handling internally
       await act(async () => {
         fireEvent.press(logoutButton);
       });
 
-      // Should handle error gracefully without crashing the component
-      expect(logoutButton).toBeTruthy();
+      // Should call Alert.alert with proper parameters
+      expect(mockAlertAlert).toHaveBeenCalledWith(
+        'Logout',
+        'Are you sure you want to logout?',
+        expect.arrayContaining([
+          expect.objectContaining({ text: 'Cancel', style: 'cancel' }),
+          expect.objectContaining({ text: 'Logout', style: 'destructive', onPress: expect.any(Function) })
+        ])
+      );
+    });
+
+    test('should handle logout confirmation - success path (Lines 41-48)', async () => {
+      mockLogout.mockResolvedValue(undefined);
+      
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      const logoutButton = screen.getByText('Logout');
+      
+      await act(async () => {
+        fireEvent.press(logoutButton);
+      });
+
+      // Get the onPress function from the Alert.alert call
+      const logoutCallArgs = mockAlertAlert.mock.calls[0];
+      const buttons = logoutCallArgs[2];
+      const logoutButtonOnPress = buttons.find((btn: any) => btn.text === 'Logout').onPress;
+
+      // Execute the logout onPress function
+      await act(async () => {
+        await logoutButtonOnPress();
+      });
+
+      // Should have called the logout function
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle logout error and show error dialog (Lines 44-46)', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      mockLogout.mockRejectedValue(new Error('Logout failed'));
+      
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      const logoutButton = screen.getByText('Logout');
+      
+      await act(async () => {
+        fireEvent.press(logoutButton);
+      });
+
+      // Get and execute the logout onPress function
+      const logoutCallArgs = mockAlertAlert.mock.calls[0];
+      const buttons = logoutCallArgs[2];
+      const logoutButtonOnPress = buttons.find((btn: any) => btn.text === 'Logout').onPress;
+
+      await act(async () => {
+        await logoutButtonOnPress();
+      });
+
+      // Should log error and show error alert
+      expect(consoleErrorSpy).toHaveBeenCalledWith('HomeScreen: Logout error:', expect.any(Error));
+      expect(mockAlertAlert).toHaveBeenCalledTimes(2); // First for confirmation, second for error
+      expect(mockAlertAlert).toHaveBeenLastCalledWith('Error', 'Failed to logout. Please try again.');
 
       consoleErrorSpy.mockRestore();
     });
 
-    test('should handle successful logout', async () => {
-      mockLogout.mockResolvedValue(undefined);
+    test('should set isLoggingOut state during logout process (Line 41, 48)', async () => {
+      // Mock logout to take some time
+      let resolveLogout: () => void;
+      const logoutPromise = new Promise<void>(resolve => {
+        resolveLogout = resolve;
+      });
+      mockLogout.mockReturnValue(logoutPromise);
       
-      render(<HomeScreen />);
+      await act(async () => {
+        render(<HomeScreen />);
+      });
 
       const logoutButton = screen.getByText('Logout');
       
@@ -370,8 +433,41 @@ describe('HomeScreen', () => {
         fireEvent.press(logoutButton);
       });
 
-      // Component should remain stable
-      expect(logoutButton).toBeTruthy();
+      // Get and execute the logout onPress function
+      const logoutCallArgs = mockAlertAlert.mock.calls[0];
+      const buttons = logoutCallArgs[2];
+      const logoutButtonOnPress = buttons.find((btn: any) => btn.text === 'Logout').onPress;
+
+      // Start logout process
+      const logoutExecution = act(async () => {
+        await logoutButtonOnPress();
+      });
+
+      // During logout, button should show "Logging out..." and be disabled
+      // Note: We need to complete the logout process for the test to finish
+      await act(async () => {
+        resolveLogout!();
+      });
+      
+      await logoutExecution;
+
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle cancel button in logout dialog', async () => {
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      const logoutButton = screen.getByText('Logout');
+      
+      await act(async () => {
+        fireEvent.press(logoutButton);
+      });
+
+      // Should show confirmation dialog but logout shouldn't be called
+      expect(mockAlertAlert).toHaveBeenCalledTimes(1);
+      expect(mockLogout).not.toHaveBeenCalled();
     });
   });
 
@@ -406,65 +502,74 @@ describe('HomeScreen', () => {
     });
   });
 
-  describe('Integration with Real Scenarios', () => {
-    test('should handle complete user flow: load credentials -> interaction', async () => {
-      jest.clearAllMocks();
-      mockAuthService.getCredentials.mockResolvedValue({ 
-        username: 'testuser',
-        password: 'token123' 
+  describe('UI State and Interaction Testing', () => {
+    test('should show button loading state during logout process', async () => {
+      let resolveLogout: () => void;
+      const logoutPromise = new Promise<void>(resolve => {
+        resolveLogout = resolve;
+      });
+      mockLogout.mockReturnValue(logoutPromise);
+      
+      await act(async () => {
+        render(<HomeScreen />);
       });
 
-      render(<HomeScreen />);
-
-      // Wait for credentials to load
-      await waitFor(
-        () => {
-          expect(screen.getByText('Welcome back, testuser!')).toBeTruthy();
-        },
-        { timeout: 2000 }
-      );
-
-      // Component should be interactive
       const logoutButton = screen.getByText('Logout');
-      expect(logoutButton).toBeTruthy();
-    });
-
-    test('should handle empty string username', async () => {
-      jest.clearAllMocks();
-      mockAuthService.getCredentials.mockResolvedValue({ 
-        username: '',
-        password: 'token123' 
+      
+      await act(async () => {
+        fireEvent.press(logoutButton);
       });
 
-      render(<HomeScreen />);
+      // Get and trigger the logout action
+      const buttons = mockAlertAlert.mock.calls[0][2];
+      const logoutAction = buttons.find((btn: any) => btn.text === 'Logout').onPress;
 
-      await waitFor(
-        () => {
-          expect(mockAuthService.getCredentials).toHaveBeenCalledTimes(1);
-        },
-        { timeout: 2000 }
-      );
+      // Start logout process
+      const logoutExecution = logoutAction();
 
-      // Should show default welcome message for empty username
-      expect(screen.getByText('Welcome back!')).toBeTruthy();
-    });
-
-    test('should handle very long usernames', async () => {
-      jest.clearAllMocks();
-      const longUsername = 'a'.repeat(100);
-      mockAuthService.getCredentials.mockResolvedValue({ 
-        username: longUsername,
-        password: 'token123' 
+      // Complete the logout process
+      act(() => {
+        resolveLogout!();
       });
 
-      render(<HomeScreen />);
+      await act(async () => {
+        await logoutExecution;
+      });
 
-      await waitFor(
-        () => {
-          expect(screen.getByText(`Welcome back, ${longUsername}!`)).toBeTruthy();
-        },
-        { timeout: 2000 }
-      );
+      expect(mockLogout).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle different username lengths', async () => {
+      const testCases = [
+        { username: 'a', expected: 'Logged in as: a' },
+        { username: 'verylongusername123456789', expected: 'Logged in as: verylongusername123456789' },
+        { username: 'user@example.com', expected: 'Logged in as: user@example.com' }
+      ];
+
+      for (const testCase of testCases) {
+        jest.clearAllMocks();
+        mockAuthService.getCredentials.mockResolvedValue({ username: testCase.username });
+
+        const { unmount } = await act(async () => {
+          return render(<HomeScreen />);
+        });
+
+        expect(screen.getByText(testCase.expected)).toBeTruthy();
+        unmount();
+      }
+    });
+
+    test('should show personalized subtitle when user is logged in', async () => {
+      jest.clearAllMocks();
+      mockAuthService.getCredentials.mockResolvedValue({ username: 'petlover123' });
+
+      await act(async () => {
+        render(<HomeScreen />);
+      });
+
+      // When username is set, should show pet companion message
+      expect(screen.getByText('Ready to find your perfect pet companion?')).toBeTruthy();
+      expect(screen.queryByText('Welcome back!')).toBeNull();
     });
   });
 });

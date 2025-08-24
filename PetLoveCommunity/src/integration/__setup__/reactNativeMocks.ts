@@ -178,7 +178,20 @@ jest.mock('@react-navigation/native', () => {
   };
 });
 
-// Note: Stack Navigator mock removed as package is not installed in this project
+// Mock React Navigation Stack
+jest.mock('@react-navigation/native-stack', () => {
+  const React = require('react');
+  
+  return {
+    createNativeStackNavigator: jest.fn(() => ({
+      Navigator: jest.fn(({ children, screenOptions }) => children),
+      Screen: jest.fn(({ name, component: Component, ...props }) => {
+        // Render the component directly when mocked
+        return Component ? React.createElement(Component, { key: name, ...props }) : null;
+      }),
+    })),
+  };
+});
 
 // Mock native dependencies
 jest.mock('react-native-device-info', () => ({
@@ -202,7 +215,7 @@ jest.mock('react-native-keychain', () => ({
 }));
 
 // Mock useColors hook for component dependencies
-jest.mock('../../../hooks/useColors', () => ({
+jest.mock('../../hooks/useColors', () => ({
   useColors: jest.fn(() => ({
     primary: {
       coral: '#FF6B6B',
@@ -234,7 +247,7 @@ jest.mock('../../../hooks/useColors', () => ({
 }));
 
 // Mock constants
-jest.mock('../../../config/constants', () => ({
+jest.mock('../../config/constants', () => ({
   API_CONFIG: {
     BASE_URL: 'https://test-api.petlove.com',
     TIMEOUT: 10000,
@@ -260,12 +273,12 @@ jest.mock('../../../config/constants', () => ({
 }));
 
 // Mock services
-jest.mock('../../../services/correlationIdService', () => ({
+jest.mock('../../services/correlationIdService', () => ({
   getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-id')),
   generateCorrelationId: jest.fn(() => 'test-correlation-id'),
 }));
 
-jest.mock('../../../transactions/transactionService', () => ({
+jest.mock('../../transactions/transactionService', () => ({
   generateTransactionId: jest.fn(() => 'test-transaction-id'),
   generateIdempotencyKey: jest.fn(() => 'test-idempotency-key'),
   TransactionService: jest.fn(() => ({
@@ -276,7 +289,7 @@ jest.mock('../../../transactions/transactionService', () => ({
 }));
 
 // Mock Secure Storage utilities
-jest.mock('../../../utils/secureStorage', () => ({
+jest.mock('../../utils/secureStorage', () => ({
   secureStorage: {
     getItem: jest.fn(() => Promise.resolve(null)),
     setItem: jest.fn(() => Promise.resolve()),

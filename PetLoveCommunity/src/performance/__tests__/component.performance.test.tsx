@@ -8,17 +8,48 @@ import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Input from '../../components/Input';
 
-// Mock React Native
-jest.mock('react-native', () => ({
-  Platform: { OS: 'ios' },
-  StyleSheet: {
-    create: jest.fn(styles => styles),
-  },
-  useColorScheme: jest.fn(() => 'light'),
-  Dimensions: {
-    get: jest.fn(() => ({ width: 375, height: 812 })),
-  },
-}));
+// Mock React Native components and utilities
+jest.mock('react-native', () => {
+  const React = require('react');
+  
+  return {
+    Platform: { OS: 'ios' },
+    StyleSheet: {
+      create: jest.fn(styles => styles),
+      flatten: jest.fn(styles => styles),
+    },
+    useColorScheme: jest.fn(() => 'light'),
+    Dimensions: {
+      get: jest.fn(() => ({ width: 375, height: 812 })),
+    },
+    // Mock React Native components
+    TouchableOpacity: ({ children, onPress, style, testID, accessibilityRole, accessibilityLabel, accessibilityState, disabled, ...props }: any) =>
+      React.createElement('TouchableOpacity', { 
+        onPress: disabled ? undefined : onPress, 
+        style, 
+        testID, 
+        accessibilityRole, 
+        accessibilityLabel, 
+        accessibilityState: accessibilityState || { disabled }, 
+        ...props 
+      }, children),
+    Text: ({ children, style, ...props }: any) =>
+      React.createElement('Text', { style, ...props }, children),
+    TextInput: ({ value, onChangeText, style, placeholder, testID, accessibilityLabel, accessibilityHint, ...props }: any) =>
+      React.createElement('TextInput', { 
+        value, 
+        onChangeText, 
+        style, 
+        placeholder, 
+        testID, 
+        accessibilityLabel, 
+        accessibilityHint,
+        ...props 
+      }),
+    View: ({ children, style, testID, ...props }: any) =>
+      React.createElement('View', { style, testID, ...props }, children),
+  };
+});
 
 // Mock constants
 jest.mock('../../config/constants', () => ({
@@ -28,6 +59,43 @@ jest.mock('../../config/constants', () => ({
     BACKGROUND: '#F7FFF7',
     TEXT: '#1A535C',
   },
+}));
+
+// Mock colors module
+jest.mock('../../styles/colors', () => ({
+  getColors: jest.fn(() => ({
+    primary: {
+      coral: '#FF6B6B',
+      teal: '#4ECDC4',
+    },
+    neutral: {
+      beige: '#F7FFF7',
+      midnight: '#1A535C',
+      lightGray: '#CCCCCC',
+      darkGray: '#666666',
+    },
+    extended: {
+      coralVariations: {
+        light: '#FF8E8E',
+        dark: '#E55555',
+      },
+      tealVariations: {
+        light: '#6ED4CC',
+        dark: '#3BB5B0',
+        background: '#E8F8F7',
+      },
+      textVariations: {
+        secondary: '#2C6B73',
+        tertiary: '#6C757D',
+      },
+    },
+    semantic: {
+      success: '#00B894',
+      warning: '#FDCB6E',
+      error: '#E74C3C',
+      info: '#74B9FF',
+    },
+  })),
 }));
 
 // Performance measurement utilities for React components
