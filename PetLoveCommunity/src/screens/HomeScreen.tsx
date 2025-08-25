@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import Button from '../components/Button';
+import Card from '../components/Card';
 import { useAuth } from '../hooks/AuthProvider';
 import { useColors } from '../hooks/useColors';
 import authService from '../services/authService';
+import type { RootStackNavigationProp } from '../types/navigation';
 
-const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  navigation: RootStackNavigationProp<'Home'>;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { logout } = useAuth();
   const colors = useColors();
   const [username, setUsername] = useState('');
@@ -56,8 +62,6 @@ const HomeScreen: React.FC = () => {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
       backgroundColor: colors.neutral.beige,
       padding: 20,
     },
@@ -67,12 +71,13 @@ const HomeScreen: React.FC = () => {
       color: colors.neutral.midnight,
       textAlign: 'center',
       marginBottom: 10,
+      marginTop: 40,
     },
     subtitle: {
       fontSize: 18,
       color: colors.neutral.midnight,
       textAlign: 'center',
-      marginBottom: 40,
+      marginBottom: 32,
       opacity: 0.8,
     },
     userInfo: {
@@ -80,12 +85,39 @@ const HomeScreen: React.FC = () => {
       paddingVertical: 12,
       paddingHorizontal: 20,
       borderRadius: 8,
-      marginBottom: 30,
+      marginBottom: 16,
+      alignSelf: 'center',
     },
     userText: {
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '500',
+    },
+    actionsContainer: {
+      flex: 1,
+      gap: 16,
+      marginBottom: 32,
+    },
+    actionCard: {
+      padding: 20,
+    },
+    actionTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    actionDescription: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 20,
+      lineHeight: 22,
+    },
+    actionButton: {
+      marginTop: 4,
+    },
+    logoutButton: {
+      marginTop: 16,
     },
   });
 
@@ -103,11 +135,47 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.subtitle}>Welcome back!</Text>
       )}
       
+      {/* Pet Discovery Section */}
+      <View style={styles.actionsContainer}>
+        <Card style={styles.actionCard}>
+          <Text style={[styles.actionTitle, { color: colors.neutral.midnight }]}>
+            🐾 Find Your Perfect Pet
+          </Text>
+          <Text style={[styles.actionDescription, { color: colors.extended.textVariations.secondary }]}>
+            Browse available pets from local shelters and rescue organizations
+          </Text>
+          <Button 
+            title="Find Pets ❤️"
+            onPress={() => navigation.navigate('PetList')}
+            type="primary"
+            style={styles.actionButton}
+          />
+        </Card>
+
+        <Card style={styles.actionCard}>
+          <Text style={[styles.actionTitle, { color: colors.neutral.midnight }]}>
+            🏠 Pet Services
+          </Text>
+          <Text style={[styles.actionDescription, { color: colors.extended.textVariations.secondary }]}>
+            Book grooming, training, and veterinary services for your pets
+          </Text>
+          <Button 
+            title="Browse Services"
+            onPress={() => {
+              Alert.alert('Coming Soon', 'Pet services will be available in the next update!');
+            }}
+            type="secondary"
+            style={styles.actionButton}
+          />
+        </Card>
+      </View>
+      
       <Button 
         title={isLoggingOut ? 'Logging out...' : 'Logout'} 
         onPress={handleLogout}
         disabled={isLoggingOut}
         type="secondary"
+        style={styles.logoutButton}
       />
     </View>
   );
