@@ -1,19 +1,23 @@
 // Pet Love Community - Pet Experience Form Step
 // Third step of adoption application with pet experience details
 
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useColors } from '../../hooks/useColors';
 import Input from '../Input';
+import DocumentUploadModal from '../DocumentUploadModal';
+import { DocumentType } from '../../services/documentUploadService';
 import type { AdoptionApplication } from '../../types/pet';
 
 interface ExperienceStepProps {
   data?: AdoptionApplication['experience'];
+  applicationId?: string;
   onUpdate: (experience: AdoptionApplication['experience']) => void;
 }
 
-const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onUpdate }) => {
+const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, applicationId, onUpdate }) => {
   const colors = useColors();
+  const [showVetDocumentModal, setShowVetDocumentModal] = useState(false);
 
   const updateField = <K extends keyof AdoptionApplication['experience']>(
     field: K,
@@ -193,7 +197,47 @@ const ExperienceStep: React.FC<ExperienceStepProps> = ({ data, onUpdate }) => {
             multiline
             numberOfLines={2}
           />
+
+          {/* Veterinary Records Upload */}
+          {applicationId && (
+            <View style={styles.documentSection}>
+              <Text style={[styles.documentLabel, { color: colors.neutral.midnight }]}>
+                Veterinary Records (Optional)
+              </Text>
+              <Text style={[styles.documentDescription, { color: colors.extended.textVariations.secondary }]}>
+                Upload vaccination records, health certificates, or other veterinary documents for your current pets.
+              </Text>
+              
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  {
+                    backgroundColor: colors.extended.tealVariations.background,
+                    borderColor: colors.primary.teal,
+                  }
+                ]}
+                onPress={() => setShowVetDocumentModal(true)}
+              >
+                <Text style={[styles.uploadButtonText, { color: colors.primary.teal }]}>
+                  📄 Upload Veterinary Records
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
+      )}
+
+      {/* Document Upload Modal */}
+      {applicationId && (
+        <DocumentUploadModal
+          visible={showVetDocumentModal}
+          onClose={() => setShowVetDocumentModal(false)}
+          applicationId={applicationId}
+          documentType={DocumentType.VET_RECORDS}
+          title="Upload Veterinary Records"
+          description="Please provide vaccination records, health certificates, or other relevant veterinary documents for your current pets. This helps us verify their health status and care history."
+          allowMultiple={true}
+        />
       )}
     </View>
   );
@@ -266,6 +310,32 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  documentSection: {
+    marginTop: 16,
+    gap: 8,
+  },
+  documentLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  documentDescription: {
+    fontSize: 14,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

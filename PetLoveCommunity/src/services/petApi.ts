@@ -206,16 +206,30 @@ export const petApi = createApi({
 
     // Document Upload
     uploadApplicationDocument: builder.mutation<
-      PetApiResponse<{ url: string; documentId: string }>,
-      { applicationId: string; file: FormData; documentType: string }
+      PetApiResponse<{ url: string; documentId: string; thumbnailUrl?: string }>,
+      { 
+        applicationId: string; 
+        documentType: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        description?: string;
+        fileData: string; // base64 encoded
+      }
     >({
-      query: ({ applicationId, file, documentType }) => ({
+      query: ({ applicationId, documentType, fileName, fileSize, mimeType, description, fileData }) => ({
         url: `/adoption/applications/${applicationId}/documents`,
         method: 'POST',
-        body: file,
-        formData: true,
+        body: {
+          documentType,
+          fileName,
+          fileSize,
+          mimeType,
+          description,
+          fileData,
+        },
         headers: {
-          'X-Document-Type': documentType,
+          'Content-Type': 'application/json',
         },
       }),
       invalidatesTags: (result, error, { applicationId }) => [
