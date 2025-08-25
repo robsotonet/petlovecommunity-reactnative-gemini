@@ -230,7 +230,7 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   if (isLoading && !pets) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.neutral.beige }]}>
-        <ActivityIndicator size="large" color={colors.primary.coral} />
+        <ActivityIndicator testID="activity-indicator" size="large" color={colors.primary.coral} />
         <Text style={[styles.loadingText, { color: colors.extended.textVariations.secondary }]}>
           Finding pets for you...
         </Text>
@@ -241,6 +241,7 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.neutral.beige }]}>
       <FlatList
+        testID="pet-list-flatlist"
         data={pets || []}
         renderItem={renderPetItem}
         keyExtractor={(item) => item.id}

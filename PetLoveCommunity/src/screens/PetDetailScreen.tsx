@@ -152,7 +152,7 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.neutral.beige }]}>
-        <ActivityIndicator size="large" color={colors.primary.coral} />
+        <ActivityIndicator testID="pet-detail-loading" size="large" color={colors.primary.coral} />
         <Text style={[styles.loadingText, { color: colors.extended.textVariations.secondary }]}>
           Loading pet details...
         </Text>

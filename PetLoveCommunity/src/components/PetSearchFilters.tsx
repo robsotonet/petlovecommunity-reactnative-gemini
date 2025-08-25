@@ -504,6 +504,7 @@ const PetSearchFilters: React.FC<PetSearchFiltersProps> = ({
               },
             ]}
             onPress={() => setShowFilters(true)}
+            testID="filter-button"
           >
             <Text
               style={[

@@ -175,6 +175,7 @@ const SwipeableImageGallery: React.FC<SwipeableImageGalleryProps> = ({
                 offset: screenWidth * index,
                 index,
               })}
+              testID="swipeable-gallery-flatlist"
             />
 
             {/* Navigation Arrows */}
