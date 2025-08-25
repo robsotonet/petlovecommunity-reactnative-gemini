@@ -10,6 +10,7 @@ export interface Pet {
   gender: PetGender;
   size: PetSize;
   description: string;
+  traits?: string[];
   photos: PetPhoto[];
   location: PetLocation;
   status: PetStatus;
@@ -173,12 +174,22 @@ export interface AdoptionApplication {
   experience: {
     previousPets: boolean;
     currentPets: Pet[];
-    petExperience: string;
+    petExperience?: string;
     veterinarianInfo?: {
       name: string;
       phone: string;
       address: string;
     };
+  };
+  preferences?: {
+    activityLevel?: 'low' | 'moderate' | 'high' | 'very-high';
+    sizePreference?: 'small' | 'medium' | 'large' | 'extra-large' | 'no-preference';
+    willingToTrain?: boolean;
+    timeCommitment?: 'minimal' | 'moderate' | 'significant' | 'extensive';
+    hasChildren?: boolean;
+    needsPetCompatibility?: boolean;
+    specialConsiderations?: string;
+    whyThisPet?: string;
   };
   references: Reference[];
   documents: ApplicationDocument[];
