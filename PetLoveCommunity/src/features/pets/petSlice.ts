@@ -22,6 +22,26 @@ export interface AdoptionDraft {
   currentStep: number;
   formData: Partial<AdoptionApplication>;
   isAutoSaved: boolean;
+  // Enhanced draft management
+  version: number;
+  createdAt: string;
+  lastModified: string;
+  syncStatus: 'local' | 'syncing' | 'synced' | 'conflict' | 'error';
+  serverVersion?: number;
+  conflictData?: Partial<AdoptionApplication>;
+  backupVersions: Array<{
+    version: number;
+    formData: Partial<AdoptionApplication>;
+    savedAt: string;
+    completionPercentage: number;
+  }>;
+  metadata: {
+    deviceId: string;
+    appVersion: string;
+    correlationId: string;
+    changesSinceLastSync: string[];
+    autoSaveInterval: number;
+  };
 }
 
 export interface AdoptionFilters {
@@ -234,6 +254,20 @@ const petSlice = createSlice({
           },
         },
         isAutoSaved: false,
+        version: 1,
+        createdAt: new Date().toISOString(),
+        lastModified: new Date().toISOString(),
+        syncStatus: 'local',
+        serverVersion: undefined,
+        conflictData: undefined,
+        backupVersions: [],
+        metadata: {
+          deviceId: '', // Will be filled by device service
+          appVersion: '', // Will be filled by app info
+          correlationId: `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          changesSinceLastSync: [],
+          autoSaveInterval: 30000, // 30 seconds default
+        },
       };
 
       // Track in analytics funnel
@@ -254,7 +288,19 @@ const petSlice = createSlice({
       if (draft) {
         draft.formData = { ...draft.formData, ...formData };
         draft.lastSaved = new Date().toISOString();
+        draft.lastModified = new Date().toISOString();
         draft.isAutoSaved = isAutoSaved;
+        
+        // Track changes for sync
+        const changes = Object.keys(formData);
+        draft.metadata.changesSinceLastSync = [
+          ...new Set([...draft.metadata.changesSinceLastSync, ...changes])
+        ];
+        
+        // Set sync status if not already syncing
+        if (draft.syncStatus === 'synced') {
+          draft.syncStatus = 'local';
+        }
         
         if (step !== undefined) {
           draft.currentStep = step;
@@ -363,6 +409,112 @@ const petSlice = createSlice({
       };
     },
 
+    // Draft Synchronization Management
+    setDraftSyncStatus: (state, action: PayloadAction<{
+      draftId: string;
+      status: 'local' | 'syncing' | 'synced' | 'conflict' | 'error';
+    }>) => {
+      const { draftId, status } = action.payload;
+      const draft = state.drafts[draftId];
+      if (draft) {
+        draft.syncStatus = status;
+        if (status === 'synced') {
+          draft.metadata.changesSinceLastSync = [];
+        }
+      }
+    },
+
+    createDraftBackup: (state, action: PayloadAction<{
+      draftId: string;
+    }>) => {
+      const { draftId } = action.payload;
+      const draft = state.drafts[draftId];
+      if (draft) {
+        // Create backup before sync
+        const backup = {
+          version: draft.version,
+          formData: { ...draft.formData },
+          savedAt: new Date().toISOString(),
+          completionPercentage: draft.completionPercentage,
+        };
+        
+        draft.backupVersions.unshift(backup);
+        
+        // Keep only last 10 backups
+        if (draft.backupVersions.length > 10) {
+          draft.backupVersions = draft.backupVersions.slice(0, 10);
+        }
+      }
+    },
+
+    updateDraftFromServer: (state, action: PayloadAction<{
+      draftId: string;
+      serverVersion: number;
+      formData?: Partial<AdoptionApplication>;
+      conflictData?: Partial<AdoptionApplication>;
+      needsConflictResolution: boolean;
+    }>) => {
+      const { draftId, serverVersion, formData, conflictData, needsConflictResolution } = action.payload;
+      const draft = state.drafts[draftId];
+      
+      if (draft) {
+        draft.serverVersion = serverVersion;
+        
+        if (needsConflictResolution && conflictData) {
+          draft.syncStatus = 'conflict';
+          draft.conflictData = conflictData;
+        } else if (formData) {
+          // Server version is newer, update local draft
+          draft.formData = { ...draft.formData, ...formData };
+          draft.version = serverVersion;
+          draft.syncStatus = 'synced';
+          draft.metadata.changesSinceLastSync = [];
+        } else {
+          // Local version was successfully synced
+          draft.version = serverVersion;
+          draft.syncStatus = 'synced';
+          draft.metadata.changesSinceLastSync = [];
+        }
+        
+        draft.lastModified = new Date().toISOString();
+      }
+    },
+
+    resolveDraftConflict: (state, action: PayloadAction<{
+      draftId: string;
+      resolution: 'use_local' | 'use_server' | 'merge';
+      mergedData?: Partial<AdoptionApplication>;
+    }>) => {
+      const { draftId, resolution, mergedData } = action.payload;
+      const draft = state.drafts[draftId];
+      
+      if (draft && draft.syncStatus === 'conflict') {
+        switch (resolution) {
+          case 'use_server':
+            if (draft.conflictData) {
+              draft.formData = { ...draft.formData, ...draft.conflictData };
+            }
+            break;
+          case 'merge':
+            if (mergedData) {
+              draft.formData = { ...draft.formData, ...mergedData };
+            }
+            break;
+          // 'use_local' keeps current formData
+        }
+        
+        draft.syncStatus = 'local'; // Will need to sync resolved version
+        draft.conflictData = undefined;
+        draft.lastModified = new Date().toISOString();
+        draft.metadata.changesSinceLastSync = Object.keys(draft.formData);
+      }
+    },
+
+    deleteDraft: (state, action: PayloadAction<string>) => {
+      const draftId = action.payload;
+      delete state.drafts[draftId];
+    },
+
     // Cleanup
     clearError: (state) => {
       state.lastError = null;
@@ -441,6 +593,11 @@ export const {
   setSelectedPet,
   setOnlineStatus,
   resetAdoptionFunnel,
+  setDraftSyncStatus,
+  createDraftBackup,
+  updateDraftFromServer,
+  resolveDraftConflict,
+  deleteDraft,
   clearError,
 } = petSlice.actions;
 
@@ -488,6 +645,48 @@ export const selectAdoptionProgress = createSelector(
       ? (funnel.submittedApplications.length / funnel.viewedPets.length) * 100 
       : 0,
   })
+);
+
+// Draft sync and conflict management selectors
+export const selectDraftSyncStatus = createSelector(
+  [selectDrafts],
+  (drafts) => Object.values(drafts).reduce((acc, draft) => {
+    acc[draft.syncStatus] = (acc[draft.syncStatus] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>)
+);
+
+export const selectDraftsNeedingSync = createSelector(
+  [selectDrafts],
+  (drafts) => Object.values(drafts).filter(draft => 
+    draft.syncStatus === 'local' || draft.syncStatus === 'error'
+  )
+);
+
+export const selectDraftsWithConflicts = createSelector(
+  [selectDrafts],
+  (drafts) => Object.values(drafts).filter(draft => draft.syncStatus === 'conflict')
+);
+
+export const selectDraftById = createSelector(
+  [selectDrafts, (_: RootState, draftId: string) => draftId],
+  (drafts, draftId) => drafts[draftId]
+);
+
+export const selectSyncingSummary = createSelector(
+  [selectDrafts, selectIsOnline],
+  (drafts, isOnline) => {
+    const draftValues = Object.values(drafts);
+    return {
+      totalDrafts: draftValues.length,
+      needSync: draftValues.filter(d => d.syncStatus === 'local' || d.syncStatus === 'error').length,
+      syncing: draftValues.filter(d => d.syncStatus === 'syncing').length,
+      conflicts: draftValues.filter(d => d.syncStatus === 'conflict').length,
+      synced: draftValues.filter(d => d.syncStatus === 'synced').length,
+      canSync: isOnline,
+      lastSyncTimestamp: Math.max(...draftValues.map(d => new Date(d.lastModified).getTime())) || 0,
+    };
+  }
 );
 
 export default petSlice.reducer;

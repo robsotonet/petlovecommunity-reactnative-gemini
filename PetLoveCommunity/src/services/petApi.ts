@@ -184,6 +184,61 @@ export const petApi = createApi({
       ],
     }),
 
+    // Draft Management & Synchronization
+    syncApplicationDraft: builder.mutation<
+      PetApiResponse<{
+        draftId: string;
+        serverVersion: number;
+        conflictData?: Partial<AdoptionApplication>;
+        needsConflictResolution: boolean;
+      }>,
+      {
+        draftId: string;
+        clientVersion: number;
+        formData: Partial<AdoptionApplication>;
+        completionPercentage: number;
+        currentStep: number;
+        lastModified: string;
+        changesSinceLastSync: string[];
+      }
+    >({
+      query: ({ draftId, clientVersion, formData, completionPercentage, currentStep, lastModified, changesSinceLastSync }) => ({
+        url: `/adoption/applications/drafts/${draftId}/sync`,
+        method: 'POST',
+        body: {
+          clientVersion,
+          formData,
+          completionPercentage,
+          currentStep,
+          lastModified,
+          changesSinceLastSync,
+        },
+      }),
+      invalidatesTags: (result, error, { draftId }) => [
+        { type: 'AdoptionApplication', id: draftId },
+      ],
+    }),
+
+    getApplicationDraft: builder.query<
+      {
+        draftId: string;
+        formData: Partial<AdoptionApplication>;
+        completionPercentage: number;
+        currentStep: number;
+        serverVersion: number;
+        lastModified: string;
+        syncStatus: 'synced' | 'needs_sync' | 'conflict';
+      },
+      string
+    >({
+      query: (draftId) => ({
+        url: `/adoption/applications/drafts/${draftId}`,
+      }),
+      providesTags: (result, error, draftId) => [
+        { type: 'AdoptionApplication', id: draftId },
+      ],
+    }),
+
     // Analytics & Tracking
     trackPetView: builder.mutation<PetApiResponse<void>, Omit<PetViewEvent, 'timestamp' | 'correlationId'>>({
       query: (viewEvent) => ({
@@ -202,6 +257,343 @@ export const petApi = createApi({
         method: 'POST',
         body: interactionEvent,
       }),
+    }),
+
+    // Enhanced Analytics Batch Tracking
+    trackAnalyticsBatch: builder.mutation<
+      PetApiResponse<{ processedEvents: number; failedEvents: number }>,
+      {
+        events: Array<{
+          eventType: string;
+          eventData: any;
+          correlationId: string;
+          timestamp: string;
+        }>;
+      }
+    >({
+      query: ({ events }) => ({
+        url: '/analytics/batch',
+        method: 'POST',
+        body: { events },
+      }),
+    }),
+
+    trackAdoptionFunnelEvent: builder.mutation<
+      PetApiResponse<void>,
+      {
+        petId: string;
+        funnelStep: string;
+        stepDetails: any;
+        correlationId: string;
+        timestamp: string;
+        applicationId?: string;
+        draftId?: string;
+      }
+    >({
+      query: (funnelEvent) => ({
+        url: '/analytics/adoption-funnel',
+        method: 'POST',
+        body: funnelEvent,
+      }),
+    }),
+
+    trackFormAnalyticsEvent: builder.mutation<
+      PetApiResponse<void>,
+      {
+        formType: string;
+        formId: string;
+        action: string;
+        fieldDetails?: any;
+        correlationId: string;
+        timestamp: string;
+      }
+    >({
+      query: (formEvent) => ({
+        url: '/analytics/form-interaction',
+        method: 'POST',
+        body: formEvent,
+      }),
+    }),
+
+    trackDocumentUploadEvent: builder.mutation<
+      PetApiResponse<void>,
+      {
+        documentType: string;
+        applicationId: string;
+        action: string;
+        uploadDetails: any;
+        correlationId: string;
+        timestamp: string;
+      }
+    >({
+      query: (documentEvent) => ({
+        url: '/analytics/document-upload',
+        method: 'POST',
+        body: documentEvent,
+      }),
+    }),
+
+    trackSearchAnalyticsEvent: builder.mutation<
+      PetApiResponse<void>,
+      {
+        searchDetails: any;
+        resultsCount: number;
+        searchTime: number;
+        correlationId: string;
+        timestamp: string;
+      }
+    >({
+      query: (searchEvent) => ({
+        url: '/analytics/search',
+        method: 'POST',
+        body: searchEvent,
+      }),
+    }),
+
+    // Analytics Insights
+    getAdoptionFunnelAnalytics: builder.query<
+      {
+        totalViews: number;
+        totalFavorites: number;
+        totalApplications: number;
+        totalSubmissions: number;
+        conversionRates: {
+          viewToFavorite: number;
+          favoriteToApplication: number;
+          applicationToSubmission: number;
+          overallConversion: number;
+        };
+        averageTimeToApplication: number;
+        dropOffPoints: Array<{
+          step: string;
+          dropOffRate: number;
+          commonReasons: string[];
+        }>;
+      },
+      { userId?: string; dateRange?: { start: string; end: string } }
+    >({
+      query: ({ userId, dateRange } = {}) => ({
+        url: '/analytics/adoption-funnel/insights',
+        params: {
+          ...(userId && { userId }),
+          ...(dateRange && { startDate: dateRange.start, endDate: dateRange.end }),
+        },
+      }),
+    }),
+
+    // Calendar & Appointment Management
+    getShelterAvailability: builder.query<
+      {
+        shelterId: string;
+        shelterName: string;
+        availableSlots: Array<{
+          date: string;
+          slots: Array<{
+            startTime: string;
+            endTime: string;
+            available: boolean;
+            appointmentTypes: string[];
+            maxCapacity: number;
+            currentBookings: number;
+          }>;
+        }>;
+        operatingHours: Record<string, { open: string; close: string; closed?: boolean }>;
+        blackoutDates: string[];
+        timezone: string;
+      },
+      { 
+        shelterId: string; 
+        startDate: string; 
+        endDate: string; 
+        appointmentType?: string; 
+      }
+    >({
+      query: ({ shelterId, startDate, endDate, appointmentType }) => ({
+        url: `/shelters/${shelterId}/availability`,
+        params: {
+          startDate,
+          endDate,
+          ...(appointmentType && { appointmentType }),
+        },
+      }),
+      providesTags: (result, error, { shelterId }) => [
+        { type: 'PetSearch', id: `shelter_${shelterId}_availability` },
+      ],
+    }),
+
+    scheduleAppointment: builder.mutation<
+      PetApiResponse<{
+        appointmentId: string;
+        calendarEventId?: string;
+        confirmationNumber: string;
+        status: string;
+      }>,
+      {
+        shelterId: string;
+        petId?: string;
+        appointmentType: string;
+        startDateTime: string;
+        endDateTime: string;
+        adopterId: string;
+        contactInfo: {
+          name: string;
+          email: string;
+          phone: string;
+        };
+        requirements?: string[];
+        notes?: string;
+      }
+    >({
+      query: (appointmentData) => ({
+        url: '/appointments/schedule',
+        method: 'POST',
+        body: appointmentData,
+      }),
+      invalidatesTags: (result, error, { shelterId }) => [
+        { type: 'PetSearch', id: `shelter_${shelterId}_availability` },
+      ],
+    }),
+
+    getUserAppointments: builder.query<
+      Array<{
+        appointmentId: string;
+        shelterId: string;
+        shelterName: string;
+        petId?: string;
+        petName?: string;
+        appointmentType: string;
+        startDateTime: string;
+        endDateTime: string;
+        status: string;
+        location: string;
+        contactInfo: any;
+        requirements?: string[];
+        notes?: string;
+        confirmationNumber: string;
+        createdAt: string;
+        updatedAt: string;
+      }>,
+      { status?: string; limit?: number }
+    >({
+      query: ({ status, limit = 20 } = {}) => ({
+        url: '/appointments/user',
+        params: {
+          ...(status && { status }),
+          limit,
+        },
+      }),
+      providesTags: ['AdoptionApplication'], // Reusing existing tag
+    }),
+
+    updateAppointmentStatus: builder.mutation<
+      PetApiResponse<{ appointmentId: string; status: string }>,
+      { 
+        appointmentId: string; 
+        status: 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+        notes?: string;
+        cancellationReason?: string;
+      }
+    >({
+      query: ({ appointmentId, status, notes, cancellationReason }) => ({
+        url: `/appointments/${appointmentId}/status`,
+        method: 'PATCH',
+        body: {
+          status,
+          notes,
+          cancellationReason,
+        },
+      }),
+      invalidatesTags: ['AdoptionApplication'],
+    }),
+
+    rescheduleAppointment: builder.mutation<
+      PetApiResponse<{
+        appointmentId: string;
+        newStartDateTime: string;
+        newEndDateTime: string;
+        status: string;
+      }>,
+      {
+        appointmentId: string;
+        newStartDateTime: string;
+        newEndDateTime: string;
+        reason?: string;
+      }
+    >({
+      query: ({ appointmentId, newStartDateTime, newEndDateTime, reason }) => ({
+        url: `/appointments/${appointmentId}/reschedule`,
+        method: 'PATCH',
+        body: {
+          newStartDateTime,
+          newEndDateTime,
+          reason,
+        },
+      }),
+      invalidatesTags: ['AdoptionApplication'],
+    }),
+
+    getAppointmentById: builder.query<
+      {
+        appointmentId: string;
+        shelterId: string;
+        shelterName: string;
+        shelterContact: {
+          name: string;
+          phone: string;
+          email: string;
+          address: string;
+        };
+        petId?: string;
+        petName?: string;
+        petPhoto?: string;
+        appointmentType: string;
+        startDateTime: string;
+        endDateTime: string;
+        status: string;
+        location: string;
+        requirements?: string[];
+        notes?: string;
+        confirmationNumber: string;
+        reminderSettings: Array<{
+          minutes: number;
+          method: string;
+          sent: boolean;
+        }>;
+        attendees: Array<{
+          name: string;
+          email: string;
+          role: string;
+        }>;
+      },
+      string
+    >({
+      query: (appointmentId) => ({
+        url: `/appointments/${appointmentId}`,
+      }),
+      providesTags: (result, error, appointmentId) => [
+        { type: 'AdoptionApplication', id: appointmentId },
+      ],
+    }),
+
+    addAppointmentReminder: builder.mutation<
+      PetApiResponse<{ reminderId: string }>,
+      {
+        appointmentId: string;
+        minutes: number;
+        method: 'email' | 'sms' | 'push';
+      }
+    >({
+      query: ({ appointmentId, minutes, method }) => ({
+        url: `/appointments/${appointmentId}/reminders`,
+        method: 'POST',
+        body: {
+          minutes,
+          method,
+        },
+      }),
+      invalidatesTags: (result, error, { appointmentId }) => [
+        { type: 'AdoptionApplication', id: appointmentId },
+      ],
     }),
 
     // Document Upload
@@ -280,9 +672,30 @@ export const {
   useUpdateAdoptionApplicationMutation,
   useSubmitAdoptionApplicationMutation,
 
+  // Draft Management
+  useSyncApplicationDraftMutation,
+  useGetApplicationDraftQuery,
+
   // Analytics & Tracking
   useTrackPetViewMutation,
   useTrackPetInteractionMutation,
+  useTrackAnalyticsBatchMutation,
+  useTrackAdoptionFunnelEventMutation,
+  useTrackFormAnalyticsEventMutation,
+  useTrackDocumentUploadEventMutation,
+  useTrackSearchAnalyticsEventMutation,
+
+  // Analytics Insights
+  useGetAdoptionFunnelAnalyticsQuery,
+
+  // Calendar & Appointments
+  useGetShelterAvailabilityQuery,
+  useScheduleAppointmentMutation,
+  useGetUserAppointmentsQuery,
+  useUpdateAppointmentStatusMutation,
+  useRescheduleAppointmentMutation,
+  useGetAppointmentByIdQuery,
+  useAddAppointmentReminderMutation,
 
   // File Uploads
   useUploadApplicationDocumentMutation,
