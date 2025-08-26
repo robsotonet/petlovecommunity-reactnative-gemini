@@ -684,7 +684,7 @@ export const selectSyncingSummary = createSelector(
       conflicts: draftValues.filter(d => d.syncStatus === 'conflict').length,
       synced: draftValues.filter(d => d.syncStatus === 'synced').length,
       canSync: isOnline,
-      lastSyncTimestamp: Math.max(...draftValues.map(d => new Date(d.lastModified).getTime())) || 0,
+      lastSyncTimestamp: draftValues.length > 0 ? Math.max(...draftValues.map(d => new Date(d.lastModified).getTime())) : 0,
     };
   }
 );
