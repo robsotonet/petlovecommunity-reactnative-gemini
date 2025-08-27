@@ -10,6 +10,7 @@ exports[`LoginScreen Component Rendering should have proper component structure 
       "padding": 20,
     }
   }
+  testID="login-screen"
 >
   <Text
     style={

@@ -2,7 +2,7 @@
 // Testing login form functionality, validation, and auth integration
 
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen, waitFor, act } from '@testing-library/react-native';
 import LoginScreen from '../LoginScreen';
 
 // Mock React Native components first
@@ -354,13 +354,16 @@ describe('LoginScreen', () => {
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
+      // Remove unnecessary act() wrapper - fireEvent calls are synchronous
       fireEvent.changeText(usernameInput, 'validuser');
       fireEvent.changeText(passwordInput, 'validpassword');
       fireEvent.press(loginButton);
       
-      // Check loading state
-      expect(screen.getByText('Logging in...')).toBeTruthy();
-      expect(screen.getByText('Authenticating...')).toBeTruthy();
+      // Wait for loading state to appear
+      await waitFor(() => {
+        expect(screen.getByText('Logging in...')).toBeTruthy();
+        expect(screen.getByText('Authenticating...')).toBeTruthy();
+      });
       
       // Wait for login to complete
       await waitFor(() => {
@@ -368,7 +371,7 @@ describe('LoginScreen', () => {
       });
     });
 
-    test('should disable inputs during loading', () => {
+    test('should disable inputs during loading', async () => {
       mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
       
       render(<LoginScreen />);
@@ -381,10 +384,12 @@ describe('LoginScreen', () => {
       fireEvent.changeText(passwordInput, 'validpassword');
       fireEvent.press(loginButton);
       
-      // Inputs should be disabled during loading
-      expect(usernameInput.props.editable).toBe(false);
-      expect(passwordInput.props.editable).toBe(false);
-      expect(loginButton.props.disabled).toBe(true);
+      // Wait for loading state to appear, then check if inputs are disabled
+      await waitFor(() => {
+        expect(usernameInput.props.editable).toBe(false);
+        expect(passwordInput.props.editable).toBe(false);
+        expect(loginButton.props.disabled).toBe(true);
+      });
     });
 
     test('should re-enable inputs after login completes', async () => {
@@ -396,6 +401,7 @@ describe('LoginScreen', () => {
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
+      // Remove unnecessary act() wrapper - fireEvent calls are synchronous
       fireEvent.changeText(usernameInput, 'validuser');
       fireEvent.changeText(passwordInput, 'validpassword');
       fireEvent.press(loginButton);

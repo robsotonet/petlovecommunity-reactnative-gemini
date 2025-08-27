@@ -1,7 +1,7 @@
 // Pet Love Community - Pet List Screen
 // Enterprise pet discovery and listing with real-time updates
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { Pet, PetSearchRequest } from '../types/pet';
 import { PetListNavigationProp } from '../types/navigation';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import PetSearchFilters from '../components/PetSearchFilters';
 
 interface PetListScreenProps {
   navigation: PetListNavigationProp;
@@ -30,6 +31,7 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
     page: 1,
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Analytics hook
   const { trackScreenView, trackPetView, trackPetInteraction, isReady: analyticsReady } = useAnalyticsTracker();
@@ -66,6 +68,23 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
     }
   }, [analyticsReady, hasFilters, pets?.length, trackScreenView]);
 
+  // Handle search filters change
+  const handleFiltersChange = useCallback((newFilters: PetSearchRequest) => {
+    setSearchFilters(newFilters);
+  }, []);
+
+  // Handle manual search trigger
+  const handleSearch = useCallback(async () => {
+    if (!hasFilters) return;
+    
+    setIsSearching(true);
+    try {
+      await refetchSearch();
+    } finally {
+      setIsSearching(false);
+    }
+  }, [hasFilters, refetchSearch]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -92,29 +111,25 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
     <TouchableOpacity
       style={styles.petCard}
       onPress={() => navigateToPetDetail(pet.id)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <Card>
-        <View style={styles.petContent}>
-          {/* Pet Image Placeholder */}
-          <View style={[styles.petImagePlaceholder, { backgroundColor: colors.extended.tealVariations.background }]}>
-            <Text style={[styles.imageText, { color: colors.neutral.midnight }]}>
-              📷 {pet.photos.length} photos
-            </Text>
-          </View>
+      <Card style={styles.petCardContent}>
+        {/* Pet Image Placeholder */}
+        <View style={[styles.petImageContainer, { backgroundColor: colors.extended.tealVariations.background }]}>
+          <Text style={[styles.imageText, { color: colors.neutral.midnight }]}>
+            📷 {pet.photos.length}
+          </Text>
+          <Text style={[styles.imageSubtext, { color: colors.extended.textVariations.secondary }]}>
+            photos
+          </Text>
+        </View>
 
-          {/* Pet Info */}
-          <View style={styles.petInfo}>
+        {/* Pet Info */}
+        <View style={styles.petInfo}>
+          <View style={styles.petHeader}>
             <Text style={[styles.petName, { color: colors.neutral.midnight }]}>
               {pet.name}
             </Text>
-            <Text style={[styles.petBreed, { color: colors.extended.textVariations.secondary }]}>
-              {pet.breed} • {pet.age} years • {pet.gender}
-            </Text>
-            <Text style={[styles.petLocation, { color: colors.extended.textVariations.tertiary }]}>
-              📍 {pet.location.city}, {pet.location.state}
-            </Text>
-
             {/* Status Badge */}
             <View style={[
               styles.statusBadge,
@@ -129,25 +144,51 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
               </Text>
             </View>
           </View>
+          
+          <Text style={[styles.petBreed, { color: colors.extended.textVariations.secondary }]}>
+            {pet.breed} • {pet.age} years • {pet.gender}
+          </Text>
+          <Text style={[styles.petLocation, { color: colors.extended.textVariations.tertiary }]}>
+            📍 {pet.location.city}, {pet.location.state}
+          </Text>
 
-          {/* Adoption CTA */}
-          <View style={styles.petActions}>
-            <Button
-              title="❤️ Adopt Me"
-              onPress={() => {
-                // Track interaction before navigating
-                if (analyticsReady) {
-                  trackPetInteraction(pet.id, 'application_start', { 
-                    source: hasFilters ? 'search' : 'featured',
-                    fromList: true 
-                  });
-                }
-                navigateToPetDetail(pet.id);
-              }}
-              type="primary"
-              accessibilityLabel={`View adoption details for ${pet.name}`}
-            />
+          {/* Quick Traits */}
+          <View style={styles.traitsContainer}>
+            {pet.characteristics.goodWithChildren && (
+              <View style={[styles.traitTag, { backgroundColor: colors.extended.tealVariations.background }]}>
+                <Text style={[styles.traitText, { color: colors.neutral.midnight }]}>
+                  👶 Good with kids
+                </Text>
+              </View>
+            )}
+            {pet.characteristics.houseTrained && (
+              <View style={[styles.traitTag, { backgroundColor: colors.extended.tealVariations.background }]}>
+                <Text style={[styles.traitText, { color: colors.neutral.midnight }]}>
+                  🏠 House trained
+                </Text>
+              </View>
+            )}
           </View>
+        </View>
+
+        {/* Adoption CTA */}
+        <View style={styles.petActions}>
+          <Button
+            title="❤️ View Details"
+            onPress={() => {
+              // Track interaction before navigating
+              if (analyticsReady) {
+                trackPetInteraction(pet.id, 'application_start', { 
+                  source: hasFilters ? 'search' : 'featured',
+                  fromList: true 
+                });
+              }
+              navigateToPetDetail(pet.id);
+            }}
+            type="primary"
+            accessibilityLabel={`View adoption details for ${pet.name}`}
+            style={styles.viewDetailsButton}
+          />
         </View>
       </Card>
     </TouchableOpacity>
@@ -186,7 +227,7 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   if (isLoading && !pets) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.neutral.beige }]}>
-        <ActivityIndicator size="large" color={colors.primary.coral} />
+        <ActivityIndicator testID="activity-indicator" size="large" color={colors.primary.coral} />
         <Text style={[styles.loadingText, { color: colors.extended.textVariations.secondary }]}>
           Finding pets for you...
         </Text>
@@ -197,10 +238,21 @@ const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.neutral.beige }]}>
       <FlatList
+        testID="pet-list-flatlist"
         data={pets || []}
         renderItem={renderPetItem}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={() => (
+          <>
+            <PetSearchFilters
+              searchFilters={searchFilters}
+              onFiltersChange={handleFiltersChange}
+              onSearch={handleSearch}
+              isSearching={isSearching || isLoading}
+            />
+            {renderHeader()}
+          </>
+        )}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
           <RefreshControl
@@ -222,7 +274,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 32,
   },
   loadingContainer: {
@@ -237,65 +290,94 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
+    opacity: 0.8,
   },
   petCard: {
     marginBottom: 16,
   },
-  petContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  petCardContent: {
+    padding: 16,
   },
-  petImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+  petImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 16,
+    alignSelf: 'center',
   },
   imageText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  imageSubtext: {
     fontSize: 12,
-    textAlign: 'center',
+    marginTop: 2,
   },
   petInfo: {
     flex: 1,
-    marginRight: 12,
+    marginBottom: 16,
   },
-  petName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  petBreed: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  petLocation: {
-    fontSize: 12,
+  petHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 8,
   },
+  petName: {
+    fontSize: 20,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: 12,
+  },
+  petBreed: {
+    fontSize: 16,
+    marginBottom: 6,
+  },
+  petLocation: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
   statusBadge: {
-    alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 12,
   },
   statusText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
   },
+  traitsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  traitTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  traitText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   petActions: {
-    justifyContent: 'center',
+    marginTop: 8,
+  },
+  viewDetailsButton: {
+    marginTop: 4,
   },
   emptyState: {
     padding: 32,

@@ -4,18 +4,20 @@ import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { petApi } from './services/petApi';
 import counterReducer from './features/counter/counterSlice';
+import petReducer from './features/pets/petSlice';
 
 // Persist configuration - simplified to avoid createTransform issues
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['counter'], // Only persist counter state
+  whitelist: ['counter', 'pets'], // Persist counter and pets state
   blacklist: ['petApi'], // Don't persist API cache
 };
 
 // Root reducer combining all feature reducers
 const rootReducer = combineReducers({
   counter: counterReducer,
+  pets: petReducer,
   [petApi.reducerPath]: petApi.reducer,
 });
 

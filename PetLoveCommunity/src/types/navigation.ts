@@ -12,6 +12,10 @@ export type RootStackParamList = {
   PetDetail: {
     petId: string;
   };
+  PetGallery: {
+    petId: string;
+    photoIndex: number;
+  };
   AdoptionApplication: {
     petId: string;
   };
@@ -31,6 +35,9 @@ export type PetListRouteProp = RootStackRouteProp<'PetList'>;
 
 export type PetDetailNavigationProp = RootStackNavigationProp<'PetDetail'>;
 export type PetDetailRouteProp = RootStackRouteProp<'PetDetail'>;
+
+export type PetGalleryNavigationProp = RootStackNavigationProp<'PetGallery'>;
+export type PetGalleryRouteProp = RootStackRouteProp<'PetGallery'>;
 
 export type AdoptionApplicationNavigationProp = RootStackNavigationProp<'AdoptionApplication'>;
 export type AdoptionApplicationRouteProp = RootStackRouteProp<'AdoptionApplication'>;

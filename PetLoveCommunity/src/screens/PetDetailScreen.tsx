@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   useGetPetByIdQuery,
@@ -20,10 +21,13 @@ import {
 } from '../services/petApi';
 import { useColors } from '../hooks/useColors';
 import { useAnalyticsTracker } from '../hooks/useAnalytics';
+import { usePetPhotoUpload } from '../hooks/usePetPhotoUpload';
+import loggingService from '../services/loggingService';
 import { Pet } from '../types/pet';
 import type { PetDetailNavigationProp, PetDetailRouteProp } from '../types/navigation';
 import Button from '../components/Button';
 import Card from '../components/Card';
+import CameraModal from '../components/CameraModal';
 
 interface PetDetailScreenProps {
   route: PetDetailRouteProp;
@@ -45,6 +49,33 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
 
   // Analytics hook
   const { trackPetView: trackPetViewAnalytics, trackPetInteraction, isReady: analyticsReady } = useAnalyticsTracker();
+
+  // Camera and photo upload hook
+  const {
+    isUploading,
+    showCameraModal,
+    openCameraModal,
+    closeCameraModal,
+    handlePhotoSelected,
+  } = usePetPhotoUpload({
+    petId,
+    onUploadSuccess: (photoUrl, photoId) => {
+      // Refresh pet data to show new photo
+      loggingService.info('Photo uploaded successfully', 'PetDetail', { 
+        photoUrl, 
+        photoId, 
+        petId 
+      });
+      // TODO: Invalidate RTK Query cache to refresh pet data
+    },
+    onUploadError: (error) => {
+      loggingService.error('Photo upload error', 'PetDetail', { 
+        error: error instanceof Error ? error.message : String(error),
+        petId,
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+    },
+  });
 
   // Check if pet is favorited
   const isFavorited = favorites?.some(fav => fav.petId === petId) || false;
@@ -131,7 +162,7 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.neutral.beige }]}>
-        <ActivityIndicator size="large" color={colors.primary.coral} />
+        <ActivityIndicator testID="pet-detail-loading" size="large" color={colors.primary.coral} />
         <Text style={[styles.loadingText, { color: colors.extended.textVariations.secondary }]}>
           Loading pet details...
         </Text>
@@ -184,70 +215,113 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
       style={[styles.container, { backgroundColor: colors.neutral.beige }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Pet Images */}
-      <View style={[styles.imageContainer, { backgroundColor: colors.extended.tealVariations.background }]}>
-        <Text style={[styles.imagePlaceholder, { color: colors.neutral.midnight }]}>
-          📷 {pet.photos.length} photos of {pet.name}
-        </Text>
-      </View>
+      {/* Hero Image Section */}
+      <TouchableOpacity 
+        style={[styles.heroImageContainer, { backgroundColor: colors.extended.tealVariations.background }]}
+        onPress={() => {
+          navigation.navigate('PetGallery', { petId: pet.id, photoIndex: 0 });
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={styles.heroImageContent}>
+          <Text style={[styles.heroImageText, { color: colors.neutral.midnight }]}>
+            📷 {pet.photos.length}
+          </Text>
+          <Text style={[styles.heroImageSubtext, { color: colors.extended.textVariations.secondary }]}>
+            photos of {pet.name}
+          </Text>
+          <Text style={[styles.heroImageHint, { color: colors.extended.textVariations.tertiary }]}>
+            Tap to view gallery
+          </Text>
+        </View>
+        
+        {/* Status overlay */}
+        <View style={styles.statusOverlay}>
+          <View style={[
+            styles.statusBadgeLarge,
+            { 
+              backgroundColor: pet.status === 'available' 
+                ? colors.semantic.success 
+                : colors.extended.textVariations.tertiary 
+            }
+          ]}>
+            <Text style={styles.statusTextLarge}>
+              {pet.status.toUpperCase()}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
 
       {/* Pet Info */}
       <View style={styles.content}>
-        <Card>
-          <View style={styles.headerSection}>
-            <View style={styles.titleRow}>
-              <View style={styles.titleInfo}>
-                <Text style={[styles.petName, { color: colors.neutral.midnight }]}>
-                  {pet.name}
-                </Text>
-                <Text style={[styles.petBreed, { color: colors.extended.textVariations.secondary }]}>
-                  {pet.breed} • {pet.age} years • {pet.gender}
-                </Text>
-              </View>
-
-              {/* Status Badge */}
-              <View style={[
-                styles.statusBadge,
-                { 
-                  backgroundColor: pet.status === 'available' 
-                    ? colors.semantic.success 
-                    : colors.extended.textVariations.tertiary 
-                }
-              ]}>
-                <Text style={styles.statusText}>
-                  {pet.status.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-
+        {/* Main Pet Information */}
+        <Card style={styles.mainInfoCard}>
+          <View style={styles.petNameSection}>
+            <Text style={[styles.petName, { color: colors.neutral.midnight }]}>
+              {pet.name}
+            </Text>
+            <Text style={[styles.petBreed, { color: colors.extended.textVariations.secondary }]}>
+              {pet.breed} • {pet.age} years • {pet.gender}
+            </Text>
             <Text style={[styles.location, { color: colors.extended.textVariations.tertiary }]}>
               📍 {pet.location.city}, {pet.location.state}
             </Text>
+          </View>
 
-            {/* Action Buttons */}
-            <View style={styles.actionButtons}>
-              <View style={styles.buttonRow}>
-                <View style={styles.primaryButton}>
-                  <Button
-                    title="❤️ Adopt Me"
-                    onPress={handleAdoptPress}
-                    type="primary"
-                    accessibilityLabel={`Start adoption process for ${pet.name}`}
-                  />
-                </View>
-                <View style={styles.favoriteButton}>
-                  <Button
-                    title={isFavorited ? '💝 Favorited' : '🤍 Favorite'}
-                    onPress={handleFavoritePress}
-                    type="secondary"
-                    accessibilityLabel={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-                  />
-                </View>
+          {/* Adoption Fee Highlight */}
+          <View style={[styles.adoptionFeeCard, { backgroundColor: colors.extended.coralVariations.light }]}>
+            <Text style={[styles.adoptionFeeLabel, { color: colors.neutral.midnight }]}>
+              Adoption Fee
+            </Text>
+            <Text style={[styles.adoptionFeeAmount, { color: colors.primary.coral }]}>
+              ${pet.adoptionInfo.adoptionFee}
+            </Text>
+          </View>
+        </Card>
+
+        {/* Primary Action Buttons */}
+        <Card style={styles.actionsCard}>
+          <View style={styles.primaryActions}>
+            <Button
+              title="❤️ Start Adoption Process"
+              onPress={handleAdoptPress}
+              type="primary"
+              accessibilityLabel={`Start adoption process for ${pet.name}`}
+              style={styles.adoptButton}
+            />
+            
+            <View style={styles.secondaryActionsRow}>
+              <View style={styles.favoriteButtonContainer}>
+                <Button
+                  title={isFavorited ? '💝 Favorited' : '🤍 Favorite'}
+                  onPress={handleFavoritePress}
+                  type="secondary"
+                  disabled={favoriteLoading}
+                  accessibilityLabel={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                />
               </View>
+              <View style={styles.contactButtonContainer}>
+                <Button
+                  title="📞 Contact Shelter"
+                  onPress={handleContactShelter}
+                  type="secondary"
+                />
+              </View>
+            </View>
+
+            {/* Photo Upload Action */}
+            <View style={styles.photoUploadSection}>
               <Button
-                title={`Contact ${pet.shelter.name}`}
-                onPress={handleContactShelter}
+                title={isUploading ? "📤 Uploading..." : "📷 Add Photo"}
+                onPress={openCameraModal}
                 type="secondary"
+                disabled={isUploading}
+                style={[styles.photoUploadButton, { 
+                  backgroundColor: isUploading 
+                    ? colors.extended.textVariations.tertiary 
+                    : colors.extended.tealVariations.background 
+                }]}
+                accessibilityLabel="Add a photo of this pet"
               />
             </View>
           </View>
@@ -264,55 +338,105 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
         </Card>
 
         {/* Characteristics */}
-        <Card>
+        <Card style={styles.characteristicsCard}>
           <Text style={[styles.sectionTitle, { color: colors.neutral.midnight }]}>
-            Personality & Traits
+            🐾 Personality & Traits
           </Text>
-          {renderCharacteristicBar('Energy Level', pet.characteristics.energyLevel)}
-          {renderCharacteristicBar('Good with Children', pet.characteristics.friendlinessWithChildren)}
-          {renderCharacteristicBar('Good with Pets', pet.characteristics.friendlinessWithPets)}
-          {renderCharacteristicBar('Trainability', pet.characteristics.trainability)}
-          {renderCharacteristicBar('Grooming Needs', pet.characteristics.groomingNeeds)}
+          
+          {/* Quick Traits Grid */}
+          <View style={styles.quickTraitsGrid}>
+            <View style={[styles.quickTrait, { backgroundColor: colors.extended.tealVariations.background }]}>
+              <Text style={[styles.quickTraitText, { color: colors.neutral.midnight }]}>
+                {pet.characteristics.houseTrained ? '✅' : '❌'} House Trained
+              </Text>
+            </View>
+            <View style={[styles.quickTrait, { backgroundColor: colors.extended.tealVariations.background }]}>
+              <Text style={[styles.quickTraitText, { color: colors.neutral.midnight }]}>
+                {pet.characteristics.spayedNeutered ? '✅' : '❌'} Spayed/Neutered
+              </Text>
+            </View>
+            <View style={[styles.quickTrait, { backgroundColor: colors.extended.tealVariations.background }]}>
+              <Text style={[styles.quickTraitText, { color: colors.neutral.midnight }]}>
+                {pet.characteristics.friendlinessWithChildren >= 4 ? '✅' : '❌'} Good with Kids
+              </Text>
+            </View>
+            <View style={[styles.quickTrait, { backgroundColor: colors.extended.tealVariations.background }]}>
+              <Text style={[styles.quickTraitText, { color: colors.neutral.midnight }]}>
+                {pet.characteristics.friendlinessWithPets >= 4 ? '✅' : '❌'} Good with Pets
+              </Text>
+            </View>
+          </View>
 
-          <View style={styles.booleanTraits}>
-            <Text style={[styles.traitItem, { color: colors.extended.textVariations.secondary }]}>
-              {pet.characteristics.houseTrained ? '✅' : '❌'} House Trained
+          {/* Detailed Characteristics */}
+          <View style={styles.characteristicsSection}>
+            <Text style={[styles.characteristicsSubtitle, { color: colors.extended.textVariations.secondary }]}>
+              Detailed Traits
             </Text>
-            <Text style={[styles.traitItem, { color: colors.extended.textVariations.secondary }]}>
-              {pet.characteristics.spayedNeutered ? '✅' : '❌'} Spayed/Neutered
-            </Text>
+            {renderCharacteristicBar('Energy Level', pet.characteristics.energyLevel)}
+            {renderCharacteristicBar('Good with Children', pet.characteristics.friendlinessWithChildren)}
+            {renderCharacteristicBar('Good with Pets', pet.characteristics.friendlinessWithPets)}
+            {renderCharacteristicBar('Trainability', pet.characteristics.trainability)}
+            {renderCharacteristicBar('Grooming Needs', pet.characteristics.groomingNeeds)}
           </View>
         </Card>
 
-        {/* Adoption Info */}
-        <Card>
+        {/* Adoption Process */}
+        <Card style={styles.adoptionProcessCard}>
           <Text style={[styles.sectionTitle, { color: colors.neutral.midnight }]}>
-            Adoption Details
+            📋 Adoption Process
           </Text>
-          <Text style={[styles.adoptionFee, { color: colors.primary.coral }]}>
-            Adoption Fee: ${pet.adoptionInfo.adoptionFee}
-          </Text>
-          <Text style={[styles.adoptionText, { color: colors.extended.textVariations.secondary }]}>
-            {pet.adoptionInfo.adoptionProcess.join(' • ')}
-          </Text>
+          <View style={styles.processSteps}>
+            {pet.adoptionInfo.adoptionProcess.map((step, index) => (
+              <View key={index} style={styles.processStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary.coral }]}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={[styles.stepText, { color: colors.extended.textVariations.secondary }]}>
+                  {step}
+                </Text>
+              </View>
+            ))}
+          </View>
         </Card>
 
         {/* Shelter Info */}
-        <Card>
+        <Card style={styles.shelterCard}>
           <Text style={[styles.sectionTitle, { color: colors.neutral.midnight }]}>
-            Shelter Information
+            🏠 Shelter Information
           </Text>
-          <Text style={[styles.shelterName, { color: colors.primary.teal }]}>
-            {pet.shelter.name}
-          </Text>
-          <Text style={[styles.shelterInfo, { color: colors.extended.textVariations.secondary }]}>
-            ⭐ {pet.shelter.rating}/5 ({pet.shelter.totalReviews} reviews)
-          </Text>
-          <Text style={[styles.shelterInfo, { color: colors.extended.textVariations.secondary }]}>
-            📍 {pet.shelter.address}
-          </Text>
+          
+          <View style={styles.shelterHeader}>
+            <View style={styles.shelterNameSection}>
+              <Text style={[styles.shelterName, { color: colors.primary.teal }]}>
+                {pet.shelter.name}
+              </Text>
+              <View style={styles.shelterRating}>
+                <Text style={[styles.shelterInfo, { color: colors.extended.textVariations.secondary }]}>
+                  ⭐ {pet.shelter.rating}/5
+                </Text>
+                <Text style={[styles.shelterReviews, { color: colors.extended.textVariations.tertiary }]}>
+                  ({pet.shelter.totalReviews} reviews)
+                </Text>
+              </View>
+            </View>
+          </View>
+          
+          <View style={[styles.shelterAddress, { backgroundColor: colors.extended.tealVariations.background }]}>
+            <Text style={[styles.shelterAddressText, { color: colors.neutral.midnight }]}>
+              📍 {pet.shelter.address}
+            </Text>
+          </View>
         </Card>
       </View>
+
+      {/* Camera Modal */}
+      <CameraModal
+        visible={showCameraModal}
+        onClose={closeCameraModal}
+        onPhotoSelected={handlePhotoSelected}
+        title={`Add Photo for ${pet.name}`}
+        subtitle="Help other potential adopters see this pet"
+      />
     </ScrollView>
   );
 };
@@ -350,72 +474,156 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  imageContainer: {
-    height: 250,
+  // Hero Image Styles
+  heroImageContainer: {
+    height: 280,
+    position: 'relative',
+  },
+  heroImageContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imagePlaceholder: {
-    fontSize: 18,
-    textAlign: 'center',
+  heroImageText: {
+    fontSize: 24,
+    fontWeight: '700',
   },
+  heroImageSubtext: {
+    fontSize: 16,
+    marginTop: 4,
+  },
+  heroImageHint: {
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  statusOverlay: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  statusBadgeLarge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statusTextLarge: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  // Content Styles
   content: {
     padding: 16,
     gap: 16,
   },
-  headerSection: {
-    gap: 16,
+  // Main Info Card
+  mainInfoCard: {
+    padding: 20,
   },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  titleInfo: {
-    flex: 1,
+  petNameSection: {
+    marginBottom: 16,
   },
   petName: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   petBreed: {
-    fontSize: 16,
+    fontSize: 18,
+    marginBottom: 6,
   },
   location: {
-    fontSize: 14,
+    fontSize: 16,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+  adoptionFeeCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 8,
   },
-  statusText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  adoptionFeeLabel: {
+    fontSize: 16,
+    fontWeight: '500',
   },
-  actionButtons: {
-    gap: 12,
+  adoptionFeeAmount: {
+    fontSize: 24,
+    fontWeight: '700',
   },
-  buttonRow: {
+  // Actions Card
+  actionsCard: {
+    padding: 20,
+  },
+  primaryActions: {
+    gap: 16,
+  },
+  adoptButton: {
+    paddingVertical: 4,
+  },
+  secondaryActionsRow: {
     flexDirection: 'row',
     gap: 12,
   },
-  primaryButton: {
-    flex: 2,
-  },
-  favoriteButton: {
+  favoriteButtonContainer: {
     flex: 1,
   },
+  contactButtonContainer: {
+    flex: 1,
+  },
+  photoUploadSection: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  photoUploadButton: {
+    marginTop: 4,
+  },
+  // Section Styles
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     marginBottom: 16,
   },
   description: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  // Characteristics Styles
+  characteristicsCard: {
+    padding: 20,
+  },
+  quickTraitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  quickTrait: {
+    flex: 1,
+    minWidth: '45%',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  quickTraitText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  characteristicsSection: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  characteristicsSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
   },
   characteristicItem: {
     flexDirection: 'row',
@@ -442,30 +650,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'right',
   },
-  booleanTraits: {
-    marginTop: 8,
+  // Adoption Process Styles
+  adoptionProcessCard: {
+    padding: 20,
+  },
+  processSteps: {
+    gap: 16,
+  },
+  processStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  // Shelter Info Styles
+  shelterCard: {
+    padding: 20,
+  },
+  shelterHeader: {
+    marginBottom: 16,
+  },
+  shelterNameSection: {
     gap: 8,
   },
-  traitItem: {
-    fontSize: 14,
-  },
-  adoptionFee: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  adoptionText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
   shelterName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  shelterRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   shelterInfo: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  shelterReviews: {
     fontSize: 14,
-    marginBottom: 4,
+  },
+  shelterAddress: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  shelterAddressText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

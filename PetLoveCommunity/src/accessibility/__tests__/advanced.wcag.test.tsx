@@ -639,8 +639,12 @@ describe('Advanced WCAG 2.1 AA Accessibility Tests', () => {
       const hasMinimumSize = checkMinimumTouchTarget(adoptButton);
       
       expect(hasMinimumSize).toBe(true);
-      expect(adoptButton.props.style.minWidth).toBe(44);
-      expect(adoptButton.props.style.minHeight).toBe(44);
+      // Check that minWidth and minHeight are set in either style prop or stylesheet
+      const styles = Array.isArray(adoptButton.props.style) ? adoptButton.props.style : [adoptButton.props.style];
+      const hasMinWidth = styles.some(style => style && (style.minWidth >= 44 || style.minWidth === 44));
+      const hasMinHeight = styles.some(style => style && (style.minHeight >= 44 || style.minHeight === 44));
+      expect(hasMinWidth || adoptButton.props.style?.minWidth === 44).toBe(true);
+      expect(hasMinHeight || adoptButton.props.style?.minHeight === 44).toBe(true);
     });
 
     test('Functionality should be operable with various input methods', () => {
@@ -732,7 +736,7 @@ describe('Advanced WCAG 2.1 AA Accessibility Tests', () => {
       fireEvent.press(detailsToggle);
       
       // State should update predictably
-      expect(detailsToggle.props.accessibilityLabel).toBe('Show pet details'); // Would be updated in real component
+      expect(detailsToggle.props.accessibilityLabel).toBe('Hide pet details'); // Component correctly updates label
     });
   });
 
