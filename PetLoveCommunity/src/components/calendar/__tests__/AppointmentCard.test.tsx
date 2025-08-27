@@ -5,12 +5,6 @@ import React from 'react';
 import { render, fireEvent, screen } from '@testing-library/react-native';
 import { AppointmentCard, AppointmentCardProps } from '../AppointmentCard';
 import { CalendarEvent, AppointmentType } from '../../../services/calendarService';
-import { useColors } from '../../../hooks/useColors';
-
-// Mock useColors hook
-jest.mock('../../../hooks/useColors', () => ({
-  useColors: jest.fn(),
-}));
 
 // Mock Card component
 jest.mock('../../Card', () => {
@@ -22,7 +16,7 @@ jest.mock('../../Card', () => {
   );
 });
 
-// Mock Button component
+// Mock Button component  
 jest.mock('../../Button', () => {
   const { TouchableOpacity, Text } = require('react-native');
   return ({ title, onPress, type, style, disabled }: any) => (
@@ -37,33 +31,6 @@ jest.mock('../../Button', () => {
   );
 });
 
-const mockColors = {
-  primary: {
-    coral: '#FF6B6B',
-    teal: '#4ECDC4',
-  },
-  neutral: {
-    beige: '#F7FFF7',
-    midnight: '#1A535C',
-    darkGray: '#666666',
-  },
-  extended: {
-    textVariations: {
-      secondary: '#666666',
-      tertiary: '#999999',
-    },
-    tealVariations: {
-      background: '#E8F6F5',
-    },
-  },
-  semantic: {
-    success: '#4CAF50',
-    warning: '#FF9800',
-    error: '#F44336',
-    info: '#2196F3',
-  },
-};
-
 describe('AppointmentCard', () => {
   const mockOnPress = jest.fn();
   const mockOnCancel = jest.fn();
@@ -72,7 +39,6 @@ describe('AppointmentCard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useColors as jest.Mock).mockReturnValue(mockColors);
   });
 
   const createMockAppointment = (

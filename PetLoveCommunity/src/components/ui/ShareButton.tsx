@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, Platform, ActivityIndicator, TouchableOpacity } from 'react-native';
 import Share, { ShareOptions, Social } from 'react-native-share';
 import { useColors } from '../../hooks/useColors';
-import { Button } from './Button';
+import Button from '../Button';
 import correlationIdService from '../../services/correlationIdService';
 import useAdoptionAnalytics from '../../hooks/useAdoptionAnalytics';
 

@@ -17,23 +17,10 @@ jest.mock('../../../hooks/useCalendar', () => ({
   default: jest.fn(),
 }));
 
-// Mock react-native-calendars
-jest.mock('react-native-calendars', () => ({
-  Calendar: ({ onDayPress, markedDates, theme, minDate, maxDate }: any) => {
-    const MockCalendar = require('react-native').View;
-    return (
-      <MockCalendar
-        testID="calendar"
-        onPress={() => onDayPress({ dateString: '2025-01-15' })}
-      >
-        {/* Mock calendar implementation */}
-      </MockCalendar>
-    );
-  },
-}));
+// Calendar is mocked globally in setupTests.ts
 
 // Mock Button component
-jest.mock('../../ui/Button', () => {
+jest.mock('../../Button', () => {
   const { TouchableOpacity, Text } = require('react-native');
   return ({ title, onPress, disabled, loading, variant, style }: any) => (
     <TouchableOpacity
@@ -48,7 +35,7 @@ jest.mock('../../ui/Button', () => {
 });
 
 // Mock Card component
-jest.mock('../../ui/Card', () => {
+jest.mock('../../Card', () => {
   const { View } = require('react-native');
   return ({ children, style }: any) => (
     <View testID="card" style={style}>

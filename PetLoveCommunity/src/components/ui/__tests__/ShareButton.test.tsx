@@ -10,10 +10,7 @@ import { useColors } from '../../../hooks/useColors';
 import useAdoptionAnalytics from '../../../hooks/useAdoptionAnalytics';
 import correlationIdService from '../../../services/correlationIdService';
 
-// Mock Alert
-jest.spyOn(Alert, 'alert');
-
-// Mock react-native-share
+// ShareButton specific mocks
 jest.mock('react-native-share', () => ({
   __esModule: true,
   default: {
@@ -22,31 +19,69 @@ jest.mock('react-native-share', () => ({
   },
   Social: {
     Facebook: 'facebook',
-    Instagram: 'instagram', 
     Twitter: 'twitter',
+    Instagram: 'instagram',
     WhatsApp: 'whatsapp',
-    SMS: 'sms',
-    Email: 'email',
   },
 }));
 
-// Mock hooks
-jest.mock('../../../hooks/useColors', () => ({
-  useColors: jest.fn(),
+jest.mock('../../../services/correlationIdService', () => ({
+  __esModule: true,
+  default: {
+    getCorrelationId: jest.fn(() => Promise.resolve('correlation-123')),
+  },
 }));
 
 jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: () => ({
+    trackDocumentAction: jest.fn(),
+  }),
 }));
 
-// Mock correlation service
-jest.mock('../../../services/correlationIdService', () => ({
-  getCorrelationId: jest.fn(),
+jest.mock('../../../hooks/useColors', () => ({
+  useColors: () => ({
+    primary: {
+      coral: '#FF6B6B',
+      teal: '#4ECDC4',
+    },
+    neutral: {
+      beige: '#F7FFF7',
+      midnight: '#1A535C',
+      lightGray: '#CCCCCC',
+      darkGray: '#666666',
+    },
+    extended: {
+      coralVariations: {
+        light: '#FF8E8E',
+        dark: '#E55555',
+      },
+      tealVariations: {
+        light: '#6ED4CC',
+        dark: '#3BB5B0',
+        background: '#E8F8F7',
+      },
+      textVariations: {
+        secondary: '#2C6B73',
+        tertiary: '#6C757D',
+      },
+    },
+    semantic: {
+      success: '#00B894',
+      warning: '#FDCB6E',
+      error: '#E74C3C',
+      info: '#74B9FF',
+    },
+  }),
 }));
 
-// Mock Button component
-jest.mock('../Button', () => {
+// Mock Alert
+jest.spyOn(Alert, 'alert');
+
+// Additional mocks specific to ShareButton tests
+
+// Mock Button component  
+jest.mock('../../Button', () => {
   const { TouchableOpacity, Text } = require('react-native');
   return ({ title, onPress, disabled, variant, size }: any) => (
     <TouchableOpacity
@@ -59,30 +94,11 @@ jest.mock('../Button', () => {
   );
 });
 
-const mockColors = {
-  primary: {
-    coral: '#FF6B6B',
-    teal: '#4ECDC4',
-  },
-  neutral: {
-    beige: '#F7FFF7',
-    midnight: '#1A535C',
-  },
-  extended: {
-    textVariations: {
-      secondary: '#666666',
-      tertiary: '#999999',
-    },
-    tealVariations: {
-      background: '#E8F6F5',
-    },
-  },
-};
-
 const mockShare = Share as jest.Mocked<typeof Share>;
-const mockUseColors = useColors as jest.Mock;
-const mockUseAdoptionAnalytics = useAdoptionAnalytics as jest.Mock;
+
+// Mock the correlationId service for tests  
 const mockCorrelationIdService = correlationIdService as jest.Mocked<typeof correlationIdService>;
+mockCorrelationIdService.getCorrelationId = jest.fn().mockResolvedValue('correlation-123');
 
 describe('ShareButton', () => {
   const mockTrackDocumentAction = jest.fn();
@@ -91,11 +107,6 @@ describe('ShareButton', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseColors.mockReturnValue(mockColors);
-    mockUseAdoptionAnalytics.mockReturnValue({
-      trackDocumentAction: mockTrackDocumentAction,
-    });
-    mockCorrelationIdService.getCorrelationId.mockResolvedValue('correlation-123');
     (Alert.alert as jest.Mock).mockImplementation(() => {});
   });
 

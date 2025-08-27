@@ -25,6 +25,16 @@ jest.mock('../../hooks/useColors', () => ({
     },
     primary: {
       teal: '#4ECDC4',
+      coral: '#FF6B6B',
+    },
+    extended: {
+      textVariations: {
+        secondary: '#2C6B73',
+        tertiary: '#6C757D',
+      },
+      tealVariations: {
+        background: '#E8F8F7',
+      },
     },
   }),
 }));
