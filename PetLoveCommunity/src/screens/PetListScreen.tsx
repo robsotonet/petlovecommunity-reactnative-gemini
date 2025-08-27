@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useGetFeaturedPetsQuery, useSearchPetsQuery } from '../services/petApi';
 import { useColors } from '../hooks/useColors';
@@ -24,8 +23,6 @@ import PetSearchFilters from '../components/PetSearchFilters';
 interface PetListScreenProps {
   navigation: PetListNavigationProp;
 }
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const PetListScreen: React.FC<PetListScreenProps> = ({ navigation }) => {
   const colors = useColors();
