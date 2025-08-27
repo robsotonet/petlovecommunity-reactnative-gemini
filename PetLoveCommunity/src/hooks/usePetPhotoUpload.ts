@@ -6,6 +6,7 @@ import { Alert } from 'react-native';
 import { useUploadPetPhotoMutation } from '../services/petApi';
 import photoUploadService from '../services/photoUploadService';
 import { useAnalyticsTracker } from './useAnalytics';
+import loggingService from '../services/loggingService';
 
 interface PhotoResult {
   uri: string;
@@ -120,14 +121,19 @@ export const usePetPhotoUpload = ({
         //   isPrimary,
         // }).unwrap();
 
-        console.log('RTK Query upload would be called here with:', {
+        loggingService.debug('RTK Query upload integration pending', 'PetPhotoUpload', {
           petId,
           fileName: photo.fileName,
           caption,
           isPrimary,
+          note: 'Placeholder for RTK Query integration'
         });
       } catch (apiError) {
-        console.warn('RTK Query upload failed, but upload service succeeded:', apiError);
+        loggingService.warn('RTK Query upload failed, fallback service succeeded', 'PetPhotoUpload', {
+          petId,
+          apiError: apiError instanceof Error ? apiError.message : String(apiError),
+          fallbackSuccess: true
+        });
       }
 
       trackUserAction('pet_photo_upload_completed', {

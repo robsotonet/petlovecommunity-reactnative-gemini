@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import {
   useGetPetByIdQuery,
@@ -21,6 +22,7 @@ import {
 import { useColors } from '../hooks/useColors';
 import { useAnalyticsTracker } from '../hooks/useAnalytics';
 import { usePetPhotoUpload } from '../hooks/usePetPhotoUpload';
+import loggingService from '../services/loggingService';
 import { Pet } from '../types/pet';
 import type { PetDetailNavigationProp, PetDetailRouteProp } from '../types/navigation';
 import Button from '../components/Button';
@@ -59,11 +61,19 @@ const PetDetailScreen: React.FC<PetDetailScreenProps> = ({ route, navigation }) 
     petId,
     onUploadSuccess: (photoUrl, photoId) => {
       // Refresh pet data to show new photo
-      console.log('Photo uploaded successfully:', { photoUrl, photoId });
+      loggingService.info('Photo uploaded successfully', 'PetDetail', { 
+        photoUrl, 
+        photoId, 
+        petId 
+      });
       // TODO: Invalidate RTK Query cache to refresh pet data
     },
     onUploadError: (error) => {
-      console.error('Photo upload error:', error);
+      loggingService.error('Photo upload error', 'PetDetail', { 
+        error: error instanceof Error ? error.message : String(error),
+        petId,
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
     },
   });
 

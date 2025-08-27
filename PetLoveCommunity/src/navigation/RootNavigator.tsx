@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import PetListScreen from '../screens/PetListScreen';
 import PetDetailScreen from '../screens/PetDetailScreen';
 import PetGalleryScreen from '../screens/PetGalleryScreen';
+import AdoptionApplicationScreen from '../screens/AdoptionApplicationScreen';
 import LoadingScreen from '../components/LoadingScreen';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -76,7 +77,7 @@ const RootNavigator: React.FC = () => {
             />
             <Stack.Screen 
               name="AdoptionApplication" 
-              component={HomeScreen} // TODO: Replace with AdoptionApplicationScreen when created
+              component={AdoptionApplicationScreen}
               options={{
                 title: 'Adoption Application',
                 headerStyle: {

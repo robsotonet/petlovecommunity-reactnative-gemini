@@ -1,7 +1,7 @@
 // Pet Love Community - Calendar Hook
 // Custom hook for calendar integration and appointment scheduling
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import calendarService, { 
   CalendarEvent, 
@@ -45,6 +45,10 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
   const [availableSlots, setAvailableSlots] = useState<AvailableSlots[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [isSyncInProgress, setIsSyncInProgress] = useState(false);
+  
+  // Ref for managing auto-sync timer
+  const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize calendar service
   const initialize = useCallback(async () => {
@@ -330,7 +334,14 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
       return { synced: 0, errors: 1 };
     }
 
+    // Prevent overlapping sync operations
+    if (isSyncInProgress) {
+      console.log('Sync already in progress, skipping...');
+      return { synced: 0, errors: 0 };
+    }
+
     try {
+      setIsSyncInProgress(true);
       setIsLoading(true);
       const result = await calendarService.syncWithServer();
       setLastSyncTime(new Date());
@@ -345,16 +356,55 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
       return { synced: 0, errors: 1 };
     } finally {
       setIsLoading(false);
+      setIsSyncInProgress(false);
     }
-  }, [isOnline, loadUpcomingAppointments]);
+  }, [isOnline, isSyncInProgress, loadUpcomingAppointments]);
+
+  // Start auto-sync with safe recursive pattern
+  const startAutoSync = useCallback(() => {
+    if (!autoSync || !isInitialized || !isOnline) return;
+    
+    // Clear any existing timer
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+    
+    const scheduleNextSync = () => {
+      syncTimerRef.current = setTimeout(async () => {
+        try {
+          await syncCalendar();
+        } catch (err) {
+          console.error('Auto-sync error:', err);
+        } finally {
+          // Schedule the next sync regardless of success/failure
+          if (autoSync && isInitialized && isOnline) {
+            scheduleNextSync();
+          }
+        }
+      }, syncInterval * 60 * 1000);
+    };
+    
+    scheduleNextSync();
+  }, [autoSync, isInitialized, isOnline, syncInterval, syncCalendar]);
+  
+  // Stop auto-sync
+  const stopAutoSync = useCallback(() => {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+  }, []);
 
   // Auto-sync effect
   useEffect(() => {
-    if (!autoSync || !isInitialized || !isOnline) return;
+    if (autoSync && isInitialized && isOnline) {
+      startAutoSync();
+    } else {
+      stopAutoSync();
+    }
 
-    const syncTimer = setInterval(syncCalendar, syncInterval * 60 * 1000);
-    return () => clearInterval(syncTimer);
-  }, [autoSync, isInitialized, isOnline, syncInterval, syncCalendar]);
+    return () => stopAutoSync();
+  }, [autoSync, isInitialized, isOnline, startAutoSync, stopAutoSync]);
 
   // Cleanup expired events
   const cleanupExpiredEvents = useCallback(async () => {
@@ -399,6 +449,7 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
     upcomingAppointments,
     availableSlots,
     lastSyncTime,
+    isSyncInProgress,
     
     // Actions
     initialize,
@@ -410,6 +461,10 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
     addReminder,
     syncCalendar,
     cleanupExpiredEvents,
+    
+    // Sync Control
+    startAutoSync,
+    stopAutoSync,
     
     // Queries
     getAppointment,

@@ -8,10 +8,33 @@ interface ButtonProps {
   type?: 'primary' | 'secondary';
   disabled?: boolean;
   accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: string;
+  accessibilityActions?: Array<{ name: string; label?: string }>;
+  accessibilityState?: any;
+  accessibilityLiveRegion?: 'none' | 'polite' | 'assertive';
+  accessibilityLevel?: number;
+  accessibilityLanguage?: string;
   testID?: string;
+  style?: any;
 }
 
-const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disabled = false, accessibilityLabel, testID }) => {
+const Button: React.FC<ButtonProps> = ({ 
+  title, 
+  onPress, 
+  type = 'primary', 
+  disabled = false, 
+  accessibilityLabel, 
+  accessibilityHint,
+  accessibilityRole = 'button',
+  accessibilityActions,
+  accessibilityState,
+  accessibilityLiveRegion,
+  accessibilityLevel,
+  accessibilityLanguage,
+  testID,
+  style 
+}) => {
   const colors = useColors();
   
   const getButtonStyle = () => {
@@ -30,12 +53,17 @@ const Button: React.FC<ButtonProps> = ({ title, onPress, type = 'primary', disab
 
   return (
     <TouchableOpacity
-      style={[styles.button, getButtonStyle()]}
+      style={[styles.button, getButtonStyle(), style]}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel || title}
-      accessibilityState={{ disabled }}
+      accessibilityHint={accessibilityHint}
+      accessibilityActions={accessibilityActions}
+      accessibilityState={accessibilityState || { disabled }}
+      accessibilityLiveRegion={accessibilityLiveRegion}
+      accessibilityLevel={accessibilityLevel}
+      accessibilityLanguage={accessibilityLanguage}
       testID={testID}
     >
       <Text style={[styles.text, getTextStyle()]}>{title}</Text>
@@ -50,6 +78,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 44, // WCAG AA minimum touch target size
+    minHeight: 44, // WCAG AA minimum touch target size
   },
   text: {
     fontSize: 16,

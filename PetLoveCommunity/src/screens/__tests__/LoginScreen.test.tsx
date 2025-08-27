@@ -2,7 +2,7 @@
 // Testing login form functionality, validation, and auth integration
 
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, screen, waitFor, act } from '@testing-library/react-native';
 import LoginScreen from '../LoginScreen';
 
 // Mock React Native components first
@@ -354,17 +354,21 @@ describe('LoginScreen', () => {
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
-      fireEvent.changeText(usernameInput, 'validuser');
-      fireEvent.changeText(passwordInput, 'validpassword');
-      fireEvent.press(loginButton);
+      await act(async () => {
+        fireEvent.changeText(usernameInput, 'validuser');
+        fireEvent.changeText(passwordInput, 'validpassword');
+        fireEvent.press(loginButton);
+      });
       
       // Check loading state
       expect(screen.getByText('Logging in...')).toBeTruthy();
       expect(screen.getByText('Authenticating...')).toBeTruthy();
       
       // Wait for login to complete
-      await waitFor(() => {
-        expect(screen.queryByText('Logging in...')).toBeFalsy();
+      await act(async () => {
+        await waitFor(() => {
+          expect(screen.queryByText('Logging in...')).toBeFalsy();
+        });
       });
     });
 
@@ -396,13 +400,17 @@ describe('LoginScreen', () => {
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
-      fireEvent.changeText(usernameInput, 'validuser');
-      fireEvent.changeText(passwordInput, 'validpassword');
-      fireEvent.press(loginButton);
+      await act(async () => {
+        fireEvent.changeText(usernameInput, 'validuser');
+        fireEvent.changeText(passwordInput, 'validpassword');
+        fireEvent.press(loginButton);
+      });
       
       // Wait for login to complete
-      await waitFor(() => {
-        expect(screen.queryByText('Logging in...')).toBeFalsy();
+      await act(async () => {
+        await waitFor(() => {
+          expect(screen.queryByText('Logging in...')).toBeFalsy();
+        });
       });
       
       // Inputs should be re-enabled

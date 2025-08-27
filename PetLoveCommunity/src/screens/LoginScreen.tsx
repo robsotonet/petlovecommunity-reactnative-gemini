@@ -91,6 +91,7 @@ const LoginScreen: React.FC = () => {
       
       <Input 
         label="Username" 
+        placeholder="Username"
         value={username} 
         onChangeText={(text) => {
           setUsername(text);
@@ -101,6 +102,7 @@ const LoginScreen: React.FC = () => {
       
       <Input
         label="Password"
+        placeholder="Password"
         value={password}
         onChangeText={(text) => {
           setPassword(text);

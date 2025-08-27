@@ -76,7 +76,7 @@ const AdoptionApplicationScreen: React.FC<AdoptionApplicationScreenProps> = ({
   } = useApplicationForm(draft?.id || '');
 
   // Auto-save state
-  const [lastAutoSave, setLastAutoSave] = useState<Date>(new Date());
+  const [lastAutoSave, setLastAutoSave] = useState<Date>(() => new Date());
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Initialize application if not started
