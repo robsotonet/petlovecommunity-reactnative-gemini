@@ -49,6 +49,8 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
   
   // Ref for managing auto-sync timer
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref for tracking component mount status to prevent memory leaks
+  const isMountedRef = useRef(true);
 
   // Initialize calendar service
   const initialize = useCallback(async () => {
@@ -371,13 +373,16 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
     
     const scheduleNextSync = () => {
       syncTimerRef.current = setTimeout(async () => {
+        // Prevent execution after component unmount
+        if (!isMountedRef.current) return;
+        
         try {
           await syncCalendar();
         } catch (err) {
           console.error('Auto-sync error:', err);
         } finally {
-          // Schedule the next sync regardless of success/failure
-          if (autoSync && isInitialized && isOnline) {
+          // Only schedule next if still mounted and conditions met
+          if (isMountedRef.current && autoSync && isInitialized && isOnline) {
             scheduleNextSync();
           }
         }
@@ -405,6 +410,13 @@ export const useCalendar = (options: UseCalendarOptions = {}) => {
 
     return () => stopAutoSync();
   }, [autoSync, isInitialized, isOnline, startAutoSync, stopAutoSync]);
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Cleanup expired events
   const cleanupExpiredEvents = useCallback(async () => {

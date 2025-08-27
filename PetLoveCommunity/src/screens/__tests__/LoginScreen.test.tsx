@@ -400,11 +400,10 @@ describe('LoginScreen', () => {
       const passwordInput = screen.getByPlaceholderText('Password');
       const loginButton = screen.getByText('Login');
       
-      await act(async () => {
-        fireEvent.changeText(usernameInput, 'validuser');
-        fireEvent.changeText(passwordInput, 'validpassword');
-        fireEvent.press(loginButton);
-      });
+      // Remove unnecessary act() wrapper - fireEvent calls are synchronous
+      fireEvent.changeText(usernameInput, 'validuser');
+      fireEvent.changeText(passwordInput, 'validpassword');
+      fireEvent.press(loginButton);
       
       // Wait for login to complete
       await act(async () => {

@@ -59,7 +59,7 @@ export const useDocumentUpload = (props: UseDocumentUploadProps): UseDocumentUpl
   const [documents, setDocuments] = useState<CachedDocument[]>([]);
   
   const { trackUserAction } = useAnalyticsTracker();
-  const isOnline = useSelector((state: RootState) => state.pets?.isOnline !== false);
+  const isOnline = useSelector((state: RootState) => state.pets?.isOnline ?? true);
 
   // Load documents for this application
   useEffect(() => {
