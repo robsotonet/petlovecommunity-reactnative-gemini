@@ -1,32 +1,12 @@
 // Jest Setup File for Pet Love Community
-// Minimal global test configuration - specific mocks in individual test files
+// Minimal global test configuration to avoid conflicts with React Native Testing Library
 
-// Essential React Native mocks that are needed globally
-jest.mock('react-native', () => ({
-  Platform: {
-    OS: 'ios',
-    select: jest.fn(obj => obj.ios || obj.default),
-  },
-  Alert: {
-    alert: jest.fn(),
-  },
-  StyleSheet: {
-    create: jest.fn(styles => styles),
-    flatten: jest.fn(style => style),
-  },
-  Dimensions: {
-    get: jest.fn(() => ({ width: 375, height: 812 })),
-  },
-  View: 'View',
-  Text: 'Text',
-  TouchableOpacity: 'TouchableOpacity',
-  ScrollView: 'ScrollView',
-  TextInput: 'TextInput',
-  Image: 'Image',
-  ActivityIndicator: 'ActivityIndicator',
-}));
+// Global test environment setup
+global.__DEV__ = true;
 
-// Essential AsyncStorage mock
+// Global test environment setup (imports handled in jest.setup.js)
+
+// Only mock AsyncStorage globally as it's needed by many components
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(() => Promise.resolve(null)),
   setItem: jest.fn(() => Promise.resolve()),
@@ -36,25 +16,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiSet: jest.fn(() => Promise.resolve()),
   multiRemove: jest.fn(() => Promise.resolve()),
-}));
-
-// Essential navigation mock
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
-    reset: jest.fn(),
-  }),
-  useRoute: () => ({
-    params: {},
-  }),
-  useFocusEffect: jest.fn(),
-}));
-
-// Essential Redux mock
-jest.mock('react-redux', () => ({
-  useSelector: jest.fn(),
-  useDispatch: () => jest.fn(),
 }));
 
 // Suppress noisy React warnings in tests

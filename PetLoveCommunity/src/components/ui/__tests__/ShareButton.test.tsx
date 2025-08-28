@@ -2,7 +2,7 @@
 // Comprehensive unit tests for social sharing functionality
 
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { renderWithScreen as render, fireEvent, screen, waitFor } from '../../../__mocks__/testUtils';
 import { Alert } from 'react-native';
 import Share, { Social } from 'react-native-share';
 import { ShareButton, ShareButtonProps, ShareContent } from '../ShareButton';
@@ -35,7 +35,7 @@ jest.mock('../../../services/correlationIdService', () => ({
 jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
   __esModule: true,
   default: () => ({
-    trackDocumentAction: jest.fn(),
+    trackDocumentAction: jest.fn(() => Promise.resolve()),
   }),
 }));
 
@@ -80,18 +80,20 @@ jest.spyOn(Alert, 'alert');
 
 // Additional mocks specific to ShareButton tests
 
-// Mock Button component  
+// Mock Button component with safe implementation
 jest.mock('../../Button', () => {
-  const { TouchableOpacity, Text } = require('react-native');
-  return ({ title, onPress, disabled, variant, size }: any) => (
-    <TouchableOpacity
-      testID={`share-button-${title.toLowerCase().replace(/\s+/g, '-')}`}
-      onPress={onPress}
-      disabled={disabled}
-    >
-      <Text>{title}</Text>
-    </TouchableOpacity>
-  );
+  const React = require('react');
+  return React.forwardRef(({ title, onPress, disabled, variant, size, ...props }: any, ref: any) => {
+    return React.createElement('View', {
+      ...props,
+      ref,
+      testID: `share-button-${title?.toLowerCase().replace(/\s+/g, '-') || 'button'}`,
+      onPress: disabled ? undefined : onPress,
+      disabled,
+      accessibilityRole: 'button',
+      children: title || 'Button'
+    });
+  });
 });
 
 const mockShare = Share as jest.Mocked<typeof Share>;

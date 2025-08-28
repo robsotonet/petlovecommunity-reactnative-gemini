@@ -12,42 +12,30 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true })),
 }));
 
-// Mock React Native modules
-jest.mock('react-native', () => ({
-  AppState: {
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    currentState: 'active',
-  },
-  Appearance: {
-    getColorScheme: jest.fn(() => 'light'),
-  },
-  useColorScheme: jest.fn(() => 'light'),
-  Dimensions: {
-    get: jest.fn(() => ({ width: 375, height: 812 })),
-  },
-  Platform: {
-    OS: 'ios',
-    Version: '14.0',
-  },
-  Alert: {
-    alert: jest.fn(),
-  },
-  NativeModules: {},
-  NativeEventEmitter: jest.fn(),
-  DeviceEventEmitter: {
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-  },
-  TouchableOpacity: 'TouchableOpacity',
-  View: 'View',
-  Text: 'Text',
-  TextInput: 'TextInput',
-  StyleSheet: {
-    create: (styles) => styles,
-    flatten: (styles) => styles,
-  },
-}));
+// Minimal React Native module overrides to avoid conflicts with React Native Testing Library
+// Add essential React Native components that components need
+jest.mock('react-native', () => {
+  const RN = jest.genMockFromModule('react-native');
+  return {
+    ...RN,
+    StyleSheet: {
+      create: (styles) => styles,
+      flatten: (styles) => styles,
+    },
+    Platform: {
+      OS: 'ios',
+      Version: '14.0',
+      select: jest.fn(obj => obj.ios || obj.default),
+    },
+    Alert: {
+      alert: jest.fn(),
+    },
+    View: 'View',
+    Text: 'Text',
+    TouchableOpacity: 'TouchableOpacity',
+    ActivityIndicator: 'ActivityIndicator',
+  };
+});
 
 // Mock React Navigation
 jest.mock('@react-navigation/native', () => ({

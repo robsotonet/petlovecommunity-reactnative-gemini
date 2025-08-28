@@ -5,7 +5,7 @@ module.exports = {
     '<rootDir>/src/__tests__/setupTests.ts'
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|react-redux|@reduxjs|@react-navigation|react-native-uuid|@react-native-async-storage|@react-native-community|@microsoft|react-native-keychain|react-native-device-info|react-native-share|react-native-calendars|react-native-calendar-events|react-native-permissions)/)',
+    'node_modules/(?!(react-native|@react-native|@testing-library|react-redux|@reduxjs|@react-navigation|react-native-uuid|@react-native-async-storage|@react-native-community|@microsoft|react-native-keychain|react-native-device-info|react-native-share|react-native-calendars|react-native-calendar-events|react-native-permissions)/)',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
