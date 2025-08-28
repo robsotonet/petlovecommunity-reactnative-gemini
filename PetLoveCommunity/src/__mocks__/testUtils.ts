@@ -158,18 +158,28 @@ export function render(element: React.ReactElement): CustomRenderResult {
 }
 
 // Mock fireEvent utility with comprehensive React Native events
-export const fireEvent = {
-  press: (element: ReactTestInstance) => {
-    if (element.props.onPress) {
-      element.props.onPress();
-    } else if (element.props.onPressIn) {
-      element.props.onPressIn();
-    } else if (element.props.onTouchEnd) {
-      element.props.onTouchEnd();
+export const fireEvent = Object.assign(
+  // Generic fireEvent function for any event
+  (element: ReactTestInstance, eventName: string, eventData?: any) => {
+    const eventHandlerName = `on${eventName.charAt(0).toUpperCase() + eventName.slice(1)}`;
+    if (element.props[eventHandlerName]) {
+      element.props[eventHandlerName](eventData);
     } else {
-      console.warn(`Element with testID "${element.props.testID || 'unknown'}" does not have a press handler`);
+      console.warn(`Element with testID "${element.props.testID || 'unknown'}" does not have a ${eventHandlerName} handler`);
     }
   },
+  {
+    press: (element: ReactTestInstance) => {
+      if (element.props.onPress) {
+        element.props.onPress();
+      } else if (element.props.onPressIn) {
+        element.props.onPressIn();
+      } else if (element.props.onTouchEnd) {
+        element.props.onTouchEnd();
+      } else {
+        console.warn(`Element with testID "${element.props.testID || 'unknown'}" does not have a press handler`);
+      }
+    },
   
   changeText: (element: ReactTestInstance, text: string) => {
     if (element.props.onChangeText) {
@@ -238,7 +248,8 @@ export const fireEvent = {
       element.props.onSubmitEditing();
     }
   },
-};
+  }
+);
 
 // Mock waitFor utility
 export const waitFor = async (callback: () => void, options: { timeout?: number } = {}) => {

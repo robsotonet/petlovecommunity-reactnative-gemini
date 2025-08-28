@@ -6,6 +6,7 @@ import { renderWithScreen as render, fireEvent, waitFor, act } from '../../../__
 import { Alert } from 'react-native';
 import { SocialFeed, SocialFeedProps } from '../SocialFeed';
 import { PostContent } from '../PostCard';
+import correlationIdService from '../../../services/correlationIdService';
 
 // Setup mocks
 jest.mock('../../../services/correlationIdService', () => ({
@@ -13,10 +14,12 @@ jest.mock('../../../services/correlationIdService', () => ({
   generateCorrelationId: jest.fn(() => 'test-correlation-123'),
 }));
 
+const mockTrackDocumentAction = jest.fn(() => Promise.resolve());
+
 jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
   __esModule: true,
   default: () => ({
-    trackDocumentAction: jest.fn(() => Promise.resolve()),
+    trackDocumentAction: mockTrackDocumentAction,
     trackUserAction: jest.fn(() => Promise.resolve()),
     trackScreenView: jest.fn(() => Promise.resolve()),
     trackError: jest.fn(() => Promise.resolve()),
@@ -94,7 +97,6 @@ jest.mock('../../Button', () => {
 jest.spyOn(Alert, 'alert');
 
 describe('SocialFeed', () => {
-  const mockTrackDocumentAction = jest.fn();
   const mockCorrelationId = 'test-correlation-id';
 
   const mockPosts: PostContent[] = [
@@ -154,10 +156,6 @@ describe('SocialFeed', () => {
     // Reset mock implementations
     const correlationIdService = require('../../../services/correlationIdService');
     correlationIdService.getCorrelationId.mockResolvedValue(mockCorrelationId);
-    
-    const useAdoptionAnalytics = require('../../../hooks/useAdoptionAnalytics').default;
-    const mockAnalytics = useAdoptionAnalytics();
-    mockAnalytics.trackDocumentAction.mockImplementation(mockTrackDocumentAction);
   });
 
   describe('Rendering', () => {
@@ -278,11 +276,11 @@ describe('SocialFeed', () => {
     });
 
     it('calls onCreatePost when create post button is pressed', async () => {
-      const { getByText } = render(
+      const { getByTestId } = render(
         <SocialFeed {...defaultProps} showCreateButton={true} />
       );
       
-      fireEvent.press(getByText('Share your pet story...'));
+      fireEvent.press(getByTestId('create-post-header-button'));
       
       await waitFor(() => {
         expect(defaultProps.onCreatePost).toHaveBeenCalled();
@@ -290,7 +288,7 @@ describe('SocialFeed', () => {
     });
 
     it('calls onCreatePost when empty state create button is pressed', async () => {
-      const { getByText } = render(
+      const { getByTestId } = render(
         <SocialFeed 
           {...defaultProps} 
           posts={[]} 
@@ -299,7 +297,7 @@ describe('SocialFeed', () => {
         />
       );
       
-      fireEvent.press(getByText('Create First Post'));
+      fireEvent.press(getByTestId('empty-state-create-button'));
       
       await waitFor(() => {
         expect(defaultProps.onCreatePost).toHaveBeenCalled();
@@ -405,11 +403,11 @@ describe('SocialFeed', () => {
     });
 
     it('tracks analytics when create post is opened', async () => {
-      const { getByText } = render(
+      const { getByTestId } = render(
         <SocialFeed {...defaultProps} showCreateButton={true} />
       );
       
-      fireEvent.press(getByText('Share your pet story...'));
+      fireEvent.press(getByTestId('create-post-header-button'));
       
       await waitFor(() => {
         expect(mockTrackDocumentAction).toHaveBeenCalledWith({
@@ -447,11 +445,11 @@ describe('SocialFeed', () => {
         new Error('Correlation ID error')
       );
       
-      const { getByText } = render(
+      const { getByTestId } = render(
         <SocialFeed {...defaultProps} showCreateButton={true} />
       );
       
-      fireEvent.press(getByText('Share your pet story...'));
+      fireEvent.press(getByTestId('create-post-header-button'));
       
       await waitFor(() => {
         expect(Alert.alert).toHaveBeenCalledWith(
