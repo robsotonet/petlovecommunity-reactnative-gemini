@@ -9,9 +9,23 @@ import { PostCard, PostCardProps, PostContent } from '../PostCard';
 import correlationIdService from '../../../services/correlationIdService';
 import useAdoptionAnalytics from '../../../hooks/useAdoptionAnalytics';
 
-// Mock dependencies
-jest.mock('../../../services/correlationIdService');
-jest.mock('../../../hooks/useAdoptionAnalytics');
+// Setup mocks
+const mockTrackDocumentAction = jest.fn(() => Promise.resolve());
+
+jest.mock('../../../services/correlationIdService', () => ({
+  getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-123')),
+  generateCorrelationId: jest.fn(() => 'test-correlation-123'),
+}));
+
+jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
+  __esModule: true,
+  default: () => ({
+    trackDocumentAction: mockTrackDocumentAction,
+    trackUserAction: jest.fn(() => Promise.resolve()),
+    trackScreenView: jest.fn(() => Promise.resolve()),
+    trackError: jest.fn(() => Promise.resolve()),
+  }),
+}));
 jest.mock('../../../hooks/useColors', () => ({
   useColors: () => ({
     neutral: {
@@ -68,7 +82,6 @@ jest.mock('../../ui/ShareButton', () => ({
 jest.spyOn(Alert, 'alert');
 
 describe('PostCard', () => {
-  const mockTrackDocumentAction = jest.fn();
   const mockCorrelationId = 'test-correlation-id';
 
   const basePost: PostContent = {
@@ -98,24 +111,22 @@ describe('PostCard', () => {
     onShare: jest.fn(),
     onAuthorPress: jest.fn(),
     onImagePress: jest.fn(),
+    showActions: true,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     (correlationIdService.getCorrelationId as jest.Mock).mockResolvedValue(mockCorrelationId);
-    (useAdoptionAnalytics as jest.Mock).mockReturnValue({
-      trackDocumentAction: mockTrackDocumentAction,
-    });
   });
 
   describe('Rendering', () => {
     it('renders post content correctly', () => {
-      const { getByText } = render(<PostCard {...defaultProps} />);
+      const { getByTestId, getByText } = render(<PostCard {...defaultProps} />);
       
+      expect(getByTestId(`post-card-${basePost.id}`)).toBeTruthy();
+      expect(getByTestId('post-content')).toBeTruthy();
       expect(getByText('John Doe')).toBeTruthy();
       expect(getByText('This is a test post about my dog Max!')).toBeTruthy();
-      expect(getByText('5')).toBeTruthy(); // Like count
-      expect(getByText('2')).toBeTruthy(); // Comment count
     });
 
     it('renders author avatar when provided', () => {

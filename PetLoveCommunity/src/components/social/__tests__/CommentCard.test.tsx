@@ -19,9 +19,23 @@ import { CommentCard, CommentCardProps, CommentContent } from '../CommentCard';
 import correlationIdService from '../../../services/correlationIdService';
 import useAdoptionAnalytics from '../../../hooks/useAdoptionAnalytics';
 
-// Mock dependencies
-jest.mock('../../../services/correlationIdService');
-jest.mock('../../../hooks/useAdoptionAnalytics');
+// Setup mocks
+const mockTrackDocumentAction = jest.fn(() => Promise.resolve());
+
+jest.mock('../../../services/correlationIdService', () => ({
+  getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-123')),
+  generateCorrelationId: jest.fn(() => 'test-correlation-123'),
+}));
+
+jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
+  __esModule: true,
+  default: () => ({
+    trackDocumentAction: mockTrackDocumentAction,
+    trackUserAction: jest.fn(() => Promise.resolve()),
+    trackScreenView: jest.fn(() => Promise.resolve()),
+    trackError: jest.fn(() => Promise.resolve()),
+  }),
+}));
 jest.mock('../../../hooks/useColors', () => ({
   useColors: () => ({
     neutral: {
@@ -49,7 +63,6 @@ jest.mock('../../../hooks/useColors', () => ({
 jest.spyOn(Alert, 'alert');
 
 describe('CommentCard', () => {
-  const mockTrackDocumentAction = jest.fn();
   const mockCorrelationId = 'test-correlation-id';
 
   const baseComment: CommentContent = {
@@ -107,9 +120,6 @@ describe('CommentCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (correlationIdService.getCorrelationId as jest.Mock).mockResolvedValue(mockCorrelationId);
-    (useAdoptionAnalytics as jest.Mock).mockReturnValue({
-      trackDocumentAction: mockTrackDocumentAction,
-    });
   });
 
   describe('Rendering', () => {

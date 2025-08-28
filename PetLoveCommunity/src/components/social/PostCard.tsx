@@ -342,10 +342,10 @@ export const PostCard: React.FC<PostCardProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={`post-card-${post.id}`}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+      <View style={styles.header} testID="post-header">
+        <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }} testID={`author-button-${post.id}`}>
           {post.author.avatar ? (
             <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
           ) : (
@@ -373,13 +373,13 @@ export const PostCard: React.FC<PostCardProps> = ({
       </View>
 
       {/* Content */}
-      <Text style={styles.content}>{post.content}</Text>
+      <Text style={styles.content} testID="post-content">{post.content}</Text>
 
       {/* Images */}
       {post.images && post.images.length > 0 && (
-        <View style={styles.imagesContainer}>
+        <View style={styles.imagesContainer} testID="post-images">
           {post.images.length === 1 ? (
-            <TouchableOpacity onPress={() => handleImagePress(post.images![0], 0)}>
+            <TouchableOpacity onPress={() => handleImagePress(post.images![0], 0)} testID={`image-${post.id}-0`}>
               <Image source={{ uri: post.images[0] }} style={styles.singleImage} />
             </TouchableOpacity>
           ) : (
@@ -389,6 +389,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                   key={index}
                   onPress={() => handleImagePress(image, index)}
                   style={styles.multipleImage}
+                  testID={`image-${post.id}-${index}`}
                 >
                   <Image source={{ uri: image }} style={styles.multipleImage} />
                   {index === 3 && post.images!.length > 4 && (
@@ -405,7 +406,7 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (
-        <View style={styles.tags}>
+        <View style={styles.tags} testID="post-tags">
           {post.tags.map((tag, index) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>#{tag}</Text>
@@ -422,6 +423,7 @@ export const PostCard: React.FC<PostCardProps> = ({
             style={styles.actionButton}
             onPress={handleLike}
             disabled={isLiking || disabled}
+            testID={`like-button-${post.id}`}
           >
             <Text style={[styles.actionIcon, post.isLiked && { color: colors.primary.coral }]}>
               {post.isLiked ? '❤️' : '🤍'}
@@ -436,6 +438,7 @@ export const PostCard: React.FC<PostCardProps> = ({
             style={styles.actionButton}
             onPress={handleComment}
             disabled={isCommenting || disabled}
+            testID={`comment-button-${post.id}`}
           >
             <Text style={styles.actionIcon}>💬</Text>
             <Text style={styles.actionText}>{post.comments}</Text>
