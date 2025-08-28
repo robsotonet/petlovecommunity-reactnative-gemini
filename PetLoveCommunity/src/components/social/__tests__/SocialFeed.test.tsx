@@ -1,106 +1,93 @@
 // Pet Love Community - Social Feed Component Tests
 // Comprehensive unit tests for the social feed component
 
-// Mock Redux hooks before importing anything else
-jest.mock('react-redux', () => ({
-  useDispatch: jest.fn(),
-  useSelector: jest.fn(),
-  useStore: jest.fn(() => ({
-    getState: jest.fn(),
-    dispatch: jest.fn(),
-    subscribe: jest.fn(),
-  })),
-}));
-
 import React from 'react';
-import { renderWithScreen as render, fireEvent, waitFor } from '../../../__mocks__/testUtils';
-const act = (fn: () => void) => fn(); // Simple act implementation for our custom utilities
+import { renderWithScreen as render, fireEvent, waitFor, act } from '../../../__mocks__/testUtils';
 import { Alert } from 'react-native';
 import { SocialFeed, SocialFeedProps } from '../SocialFeed';
 import { PostContent } from '../PostCard';
-import correlationIdService from '../../../services/correlationIdService';
-import useAdoptionAnalytics from '../../../hooks/useAdoptionAnalytics';
 
-// Mock dependencies
-jest.mock('../../../services/correlationIdService');
-jest.mock('../../../hooks/useAdoptionAnalytics');
-jest.mock('../../../hooks/useColors', () => ({
-  useColors: () => ({
-    neutral: {
-      beige: '#F7FFF7',
-      midnight: '#1A535C',
-      lightGray: '#E5E5E5',
-    },
-    primary: {
-      teal: '#4ECDC4',
-      coral: '#FF6B6B',
-    },
-    extended: {
-      textVariations: {
-        secondary: '#666666',
-        tertiary: '#999999',
-      },
-      tealVariations: {
-        background: '#E8F5F5',
-      },
-      coralVariations: {
-        light: '#FFE5E5',
-      },
-    },
+// Setup mocks
+jest.mock('../../../services/correlationIdService', () => ({
+  getCorrelationId: jest.fn(() => Promise.resolve('test-correlation-123')),
+  generateCorrelationId: jest.fn(() => 'test-correlation-123'),
+}));
+
+jest.mock('../../../hooks/useAdoptionAnalytics', () => ({
+  __esModule: true,
+  default: () => ({
+    trackDocumentAction: jest.fn(() => Promise.resolve()),
+    trackUserAction: jest.fn(() => Promise.resolve()),
+    trackScreenView: jest.fn(() => Promise.resolve()),
+    trackError: jest.fn(() => Promise.resolve()),
   }),
 }));
 
-jest.mock('../PostCard', () => ({
-  PostCard: ({ post, onLike, onComment, onShare, onAuthorPress, onImagePress }: any) => {
-    const { Text, TouchableOpacity, View } = require('react-native');
-    return (
-      <View testID={`post-card-${post.id}`}>
-        <Text>{post.content}</Text>
-        <TouchableOpacity 
-          testID={`like-button-${post.id}`} 
-          onPress={() => onLike?.(post.id)}
-        >
-          <Text>Like</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          testID={`comment-button-${post.id}`} 
-          onPress={() => onComment?.(post.id)}
-        >
-          <Text>Comment</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          testID={`share-button-${post.id}`} 
-          onPress={() => onShare?.(post.id)}
-        >
-          <Text>Share</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          testID={`author-button-${post.id}`} 
-          onPress={() => onAuthorPress?.(post.author.id)}
-        >
-          <Text>{post.author.name}</Text>
-        </TouchableOpacity>
-        {post.images && post.images.map((image: string, index: number) => (
-          <TouchableOpacity 
-            key={index}
-            testID={`image-${post.id}-${index}`}
-            onPress={() => onImagePress?.(image, index)}
-          >
-            <Text>Image {index}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  },
+jest.mock('../../../hooks/useColors', () => ({
+  useColors: () => ({
+    primary: { coral: '#FF6B6B', teal: '#4ECDC4' },
+    neutral: { beige: '#F7FFF7', midnight: '#1A535C', lightGray: '#CCCCCC' },
+    extended: { textVariations: { secondary: '#2C6B73', tertiary: '#6C757D' } },
+  }),
 }));
+
+jest.mock('../PostCard', () => {
+  const { Text, TouchableOpacity, View } = require('react-native');
+  return {
+    PostCard: ({ post, onLike, onComment, onShare, onAuthorPress, onImagePress }: any) => {
+      const React = require('react');
+      return React.createElement(View, {
+        testID: `post-card-${post?.id || 'unknown'}`,
+      }, [
+        React.createElement(View, { testID: 'post-content', key: 'content' }, 
+          React.createElement(Text, {}, post?.content || 'Post content')
+        ),
+        React.createElement(TouchableOpacity, { 
+          testID: `like-button-${post?.id}`, 
+          onPress: () => onLike?.(post?.id), 
+          key: 'like' 
+        }, React.createElement(Text, {}, 'Like')),
+        React.createElement(TouchableOpacity, { 
+          testID: `comment-button-${post?.id}`, 
+          onPress: () => onComment?.(post?.id), 
+          key: 'comment' 
+        }, React.createElement(Text, {}, 'Comment')),
+        React.createElement(TouchableOpacity, { 
+          testID: `share-button-${post?.id}`, 
+          onPress: () => onShare?.(post?.id), 
+          key: 'share' 
+        }, React.createElement(Text, {}, 'Share')),
+        React.createElement(TouchableOpacity, { 
+          testID: `author-button-${post?.id}`, 
+          onPress: () => onAuthorPress?.(post?.author?.id), 
+          key: 'author' 
+        }, React.createElement(Text, {}, post?.author?.name || 'Author')),
+        ...(post?.images || []).map((image: any, index: number) =>
+          React.createElement(TouchableOpacity, { 
+            testID: `image-${post?.id}-${index}`, 
+            onPress: () => onImagePress?.(image, index), 
+            key: `image-${index}` 
+          }, React.createElement(Text, {}, `Image ${index}`))
+        )
+      ]);
+    },
+    PostContent: {}
+  };
+});
 
 jest.mock('../../Button', () => {
   const { TouchableOpacity, Text } = require('react-native');
-  return ({ title, onPress, testID }: any) => (
-    <TouchableOpacity testID={testID} onPress={onPress}>
-      <Text>{title}</Text>
-    </TouchableOpacity>
-  );
+  return {
+    __esModule: true,
+    default: ({ title, onPress, testID, ...props }: any) => {
+      const React = require('react');
+      return React.createElement(TouchableOpacity, {
+        ...props,
+        testID: testID || `button-${title?.toLowerCase().replace(/\s+/g, '-') || 'button'}`,
+        onPress,
+      }, React.createElement(Text, {}, title || 'Button'));
+    }
+  };
 });
 
 // Mock Alert
@@ -163,10 +150,14 @@ describe('SocialFeed', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (correlationIdService.getCorrelationId as jest.Mock).mockResolvedValue(mockCorrelationId);
-    (useAdoptionAnalytics as jest.Mock).mockReturnValue({
-      trackDocumentAction: mockTrackDocumentAction,
-    });
+    
+    // Reset mock implementations
+    const correlationIdService = require('../../../services/correlationIdService');
+    correlationIdService.getCorrelationId.mockResolvedValue(mockCorrelationId);
+    
+    const useAdoptionAnalytics = require('../../../hooks/useAdoptionAnalytics').default;
+    const mockAnalytics = useAdoptionAnalytics();
+    mockAnalytics.trackDocumentAction.mockImplementation(mockTrackDocumentAction);
   });
 
   describe('Rendering', () => {

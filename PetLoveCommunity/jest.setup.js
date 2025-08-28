@@ -30,10 +30,41 @@ jest.mock('react-native', () => {
     Alert: {
       alert: jest.fn(),
     },
+    Dimensions: {
+      get: jest.fn(() => ({ width: 375, height: 812 })),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
     View: 'View',
     Text: 'Text',
     TouchableOpacity: 'TouchableOpacity',
     ActivityIndicator: 'ActivityIndicator',
+    FlatList: (() => {
+      const React = require('react');
+      return React.forwardRef(({ data, renderItem, keyExtractor, ListHeaderComponent, ListEmptyComponent, ListFooterComponent, refreshControl, testID, ...props }, ref) => {
+        const items = data || [];
+        return React.createElement('View', { testID, ...props, ref }, [
+          ListHeaderComponent && React.createElement('View', { key: 'header' }, ListHeaderComponent()),
+          items.length === 0 && ListEmptyComponent ? React.createElement('View', { key: 'empty' }, ListEmptyComponent()) : null,
+          ...items.map((item, index) => 
+            React.createElement('View', { key: keyExtractor ? keyExtractor(item, index) : index }, 
+              renderItem({ item, index })
+            )
+          ),
+          ListFooterComponent && React.createElement('View', { key: 'footer' }, ListFooterComponent()),
+          refreshControl && React.createElement('View', { key: 'refresh-control' }, refreshControl)
+        ].filter(Boolean));
+      });
+    })(),
+    RefreshControl: ({ testID, ...props }) => {
+      const React = require('react');
+      return React.createElement('View', { testID, ...props });
+    },
+    TextInput: 'TextInput',
+    ScrollView: 'ScrollView',
+    SafeAreaView: 'SafeAreaView',
+    Image: 'Image',
+    Modal: 'Modal',
   };
 });
 

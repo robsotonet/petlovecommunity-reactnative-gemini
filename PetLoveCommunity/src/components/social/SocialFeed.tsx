@@ -160,7 +160,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
   const renderEmptyState = useCallback(() => {
     if (loading) {
       return (
-        <View style={styles.emptyContainer}>
+        <View style={styles.emptyContainer} testID="loading-state">
           <ActivityIndicator size="large" color={colors.primary.teal} />
           <Text style={styles.emptyText}>Loading posts...</Text>
         </View>
@@ -168,7 +168,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
     }
 
     return (
-      <View style={styles.emptyContainer}>
+      <View style={styles.emptyContainer} testID="empty-state">
         <Text style={styles.emptyIcon}>🐾</Text>
         <Text style={styles.emptyTitle}>No Posts Yet</Text>
         <Text style={styles.emptyMessage}>{emptyStateMessage}</Text>
@@ -178,6 +178,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
             onPress={handleCreatePost}
             type="primary"
             style={styles.createButton}
+            testID="empty-state-create-button"
           />
         )}
       </View>
@@ -189,8 +190,12 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
     if (!showCreateButton || !onCreatePost) return null;
 
     return (
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.createPostButton} onPress={handleCreatePost}>
+      <View style={styles.header} testID="social-feed-header">
+        <TouchableOpacity 
+          style={styles.createPostButton} 
+          onPress={handleCreatePost}
+          testID="create-post-header-button"
+        >
           <Text style={styles.createPostIcon}>📝</Text>
           <Text style={styles.createPostText}>Share your pet story...</Text>
         </TouchableOpacity>
@@ -282,9 +287,10 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="social-feed-container">
       <FlatList
         ref={flatListRef}
+        testID="social-feed-flatlist"
         data={posts}
         renderItem={renderPost}
         keyExtractor={keyExtractor}
@@ -293,6 +299,7 @@ export const SocialFeed: React.FC<SocialFeedProps> = ({
         ListFooterComponent={renderFooter}
         refreshControl={
           <RefreshControl
+            testID="social-feed-refresh-control"
             refreshing={refreshing}
             onRefresh={handleRefresh}
             colors={[colors.primary.teal]}

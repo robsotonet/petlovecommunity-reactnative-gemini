@@ -13,7 +13,7 @@ jest.mock('react-redux', () => ({
 }));
 
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { renderWithScreen as render, fireEvent, waitFor } from '../../../__mocks__/testUtils';
 import { Alert } from 'react-native';
 import { CommentCard, CommentCardProps, CommentContent } from '../CommentCard';
 import correlationIdService from '../../../services/correlationIdService';

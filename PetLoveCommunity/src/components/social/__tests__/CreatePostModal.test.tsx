@@ -13,7 +13,8 @@ jest.mock('react-redux', () => ({
 }));
 
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { renderWithScreen as render, fireEvent, waitFor } from '../../../__mocks__/testUtils';
+const act = (fn: () => void) => fn(); // Simple act implementation for our custom utilities
 import { Alert } from 'react-native';
 import { CreatePostModal, CreatePostModalProps, CreatePostData } from '../CreatePostModal';
 import correlationIdService from '../../../services/correlationIdService';

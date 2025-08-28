@@ -2,7 +2,8 @@
 // Comprehensive unit tests for the post card component
 
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { renderWithScreen as render, fireEvent, waitFor } from '../../../__mocks__/testUtils';
+const act = (fn: () => void) => fn(); // Simple act implementation for our custom utilities
 import { Alert } from 'react-native';
 import { PostCard, PostCardProps, PostContent } from '../PostCard';
 import correlationIdService from '../../../services/correlationIdService';
