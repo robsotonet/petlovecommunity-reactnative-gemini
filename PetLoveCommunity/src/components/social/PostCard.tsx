@@ -347,26 +347,26 @@ export const PostCard: React.FC<PostCardProps> = ({
       <View style={styles.header} testID="post-header">
         <TouchableOpacity onPress={handleAuthorPress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }} testID={`author-button-${post.id}`}>
           {post.author.avatar ? (
-            <Image source={{ uri: post.author.avatar }} style={styles.avatar} />
+            <Image source={{ uri: post.author.avatar }} style={styles.avatar} testID="author-avatar" />
           ) : (
-            <View style={styles.avatar} />
+            <View style={styles.avatar} testID="author-avatar-placeholder" />
           )}
           <View style={styles.authorInfo}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={styles.authorName}>{post.author.name}</Text>
-              {post.author.isVerified && <Text style={styles.verified}>✓</Text>}
+              <Text style={styles.authorName} testID="author-name">{post.author.name}</Text>
+              {post.author.isVerified && <Text style={styles.verified} testID="verified-badge">✓</Text>}
             </View>
             {post.author.shelterName && (
-              <Text style={styles.shelterName}>{post.author.shelterName}</Text>
+              <Text style={styles.shelterName} testID="shelter-name">{post.author.shelterName}</Text>
             )}
-            <Text style={styles.timestamp}>{formatTimestamp(post.timestamp)}</Text>
+            <Text style={styles.timestamp} testID="post-timestamp">{formatTimestamp(post.timestamp)}</Text>
           </View>
         </TouchableOpacity>
         
         {/* Post Type Badge */}
-        <View style={styles.postType}>
-          <Text style={styles.postTypeIcon}>{getPostTypeIcon()}</Text>
-          <Text style={styles.postTypeText}>
+        <View style={styles.postType} testID="post-type-badge">
+          <Text style={styles.postTypeIcon} testID="post-type-icon">{getPostTypeIcon()}</Text>
+          <Text style={styles.postTypeText} testID="post-type-text">
             {post.postType.replace('_', ' ').toUpperCase()}
           </Text>
         </View>
@@ -380,7 +380,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         <View style={styles.imagesContainer} testID="post-images">
           {post.images.length === 1 ? (
             <TouchableOpacity onPress={() => handleImagePress(post.images![0], 0)} testID={`image-${post.id}-0`}>
-              <Image source={{ uri: post.images[0] }} style={styles.singleImage} />
+              <Image source={{ uri: post.images[0] }} style={styles.singleImage} testID="single-image-0" />
             </TouchableOpacity>
           ) : (
             <View style={styles.multipleImagesContainer}>
@@ -391,10 +391,10 @@ export const PostCard: React.FC<PostCardProps> = ({
                   style={styles.multipleImage}
                   testID={`image-${post.id}-${index}`}
                 >
-                  <Image source={{ uri: image }} style={styles.multipleImage} />
+                  <Image source={{ uri: image }} style={styles.multipleImage} testID={`multiple-image-${index}`} />
                   {index === 3 && post.images!.length > 4 && (
-                    <View style={styles.moreImagesOverlay}>
-                      <Text style={styles.moreImagesText}>+{post.images!.length - 4}</Text>
+                    <View style={styles.moreImagesOverlay} testID="more-images-overlay">
+                      <Text style={styles.moreImagesText} testID="more-images-text">+{post.images!.length - 4}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -408,8 +408,8 @@ export const PostCard: React.FC<PostCardProps> = ({
       {post.tags && post.tags.length > 0 && (
         <View style={styles.tags} testID="post-tags">
           {post.tags.map((tag, index) => (
-            <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>#{tag}</Text>
+            <View key={index} style={styles.tag} testID={`tag-${index}`}>
+              <Text style={styles.tagText} testID={`tag-text-${index}`}>#{tag}</Text>
             </View>
           ))}
         </View>
@@ -417,18 +417,18 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       {/* Actions */}
       {showActions && (
-        <View style={styles.actions}>
+        <View style={styles.actions} testID="post-actions">
           {/* Like Button */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleLike}
             disabled={isLiking || disabled}
-            testID={`like-button-${post.id}`}
+            testID="like-button"
           >
-            <Text style={[styles.actionIcon, post.isLiked && { color: colors.primary.coral }]}>
+            <Text style={[styles.actionIcon, post.isLiked && { color: colors.primary.coral }]} testID="like-icon">
               {post.isLiked ? '❤️' : '🤍'}
             </Text>
-            <Text style={[styles.actionText, post.isLiked && styles.actionTextActive]}>
+            <Text style={[styles.actionText, post.isLiked && styles.actionTextActive]} testID="like-count">
               {post.likes}
             </Text>
           </TouchableOpacity>
@@ -438,10 +438,10 @@ export const PostCard: React.FC<PostCardProps> = ({
             style={styles.actionButton}
             onPress={handleComment}
             disabled={isCommenting || disabled}
-            testID={`comment-button-${post.id}`}
+            testID="comment-button"
           >
-            <Text style={styles.actionIcon}>💬</Text>
-            <Text style={styles.actionText}>{post.comments}</Text>
+            <Text style={styles.actionIcon} testID="comment-icon">💬</Text>
+            <Text style={styles.actionText} testID="comment-count">{post.comments}</Text>
           </TouchableOpacity>
 
           {/* Share Button */}

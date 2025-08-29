@@ -411,26 +411,28 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         animationType="slide"
         presentationStyle="formSheet"
         onRequestClose={handleClose}
+        testID="create-post-modal"
       >
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={styles.container} testID="modal-container">
           <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            testID="keyboard-avoiding-view"
           >
             {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
-                <Text style={styles.headerButtonText}>Cancel</Text>
+            <View style={styles.header} testID="modal-header">
+              <TouchableOpacity onPress={handleClose} style={styles.headerButton} testID="cancel-button">
+                <Text style={styles.headerButtonText} testID="cancel-text">Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>New Post</Text>
-              <TouchableOpacity onPress={handleSubmit} style={styles.headerButton}>
-                <Text style={[styles.headerButtonText, { opacity: content.trim() ? 1 : 0.5 }]}>
+              <Text style={styles.headerTitle} testID="modal-title">New Post</Text>
+              <TouchableOpacity onPress={handleSubmit} style={styles.headerButton} testID="share-button">
+                <Text style={[styles.headerButtonText, { opacity: content.trim() ? 1 : 0.5 }]} testID="share-text">
                   Share
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false} testID="modal-content">
               {/* Text Content */}
               <TextInput
                 ref={textInputRef}
@@ -442,20 +444,21 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                 multiline
                 autoFocus
                 maxLength={maxContentLength}
+                testID="content-input"
               />
               
               <Text style={[
                 styles.characterCount,
                 content.length > maxContentLength * 0.9 && styles.characterCountWarning,
                 content.length >= maxContentLength && styles.characterCountError,
-              ]}>
+              ]} testID="character-count">
                 {content.length}/{maxContentLength}
               </Text>
 
               {/* Post Type Selection */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Post Type</Text>
-                <View style={styles.postTypeContainer}>
+              <View style={styles.section} testID="post-type-section">
+                <Text style={styles.sectionTitle} testID="post-type-title">Post Type</Text>
+                <View style={styles.postTypeContainer} testID="post-type-container">
                   {postTypeOptions.map((option) => (
                     <TouchableOpacity
                       key={option.value}
@@ -464,12 +467,13 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         postType === option.value && styles.postTypeOptionSelected,
                       ]}
                       onPress={() => setPostType(option.value as CreatePostData['postType'])}
+                      testID={`post-type-${option.value}`}
                     >
-                      <Text style={styles.postTypeIcon}>{option.icon}</Text>
+                      <Text style={styles.postTypeIcon} testID={`post-type-icon-${option.value}`}>{option.icon}</Text>
                       <Text style={[
                         styles.postTypeText,
                         postType === option.value && styles.postTypeTextSelected,
-                      ]}>
+                      ]} testID={`post-type-text-${option.value}`}>
                         {option.label}
                       </Text>
                     </TouchableOpacity>
@@ -478,17 +482,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               </View>
 
               {/* Images */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Photos ({images.length}/{maxImages})</Text>
-                <View style={styles.imagesContainer}>
+              <View style={styles.section} testID="images-section">
+                <Text style={styles.sectionTitle} testID="images-title">Photos ({images.length}/{maxImages})</Text>
+                <View style={styles.imagesContainer} testID="images-container">
                   {images.map((image, index) => (
-                    <View key={index} style={styles.imageWrapper}>
-                      <Image source={{ uri: image }} style={styles.image} />
+                    <View key={index} style={styles.imageWrapper} testID={`image-wrapper-${index}`}>
+                      <Image source={{ uri: image }} style={styles.image} testID={`image-${index}`} />
                       <TouchableOpacity
                         style={styles.removeImageButton}
                         onPress={() => handleRemoveImage(index)}
+                        testID={`remove-image-${index}`}
                       >
-                        <Text style={styles.removeImageText}>×</Text>
+                        <Text style={styles.removeImageText} testID={`remove-image-text-${index}`}>×</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -497,17 +502,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                     <TouchableOpacity
                       style={styles.addImageButton}
                       onPress={() => setShowCamera(true)}
+                      testID="add-image-button"
                     >
-                      <Text style={styles.addImageIcon}>+</Text>
+                      <Text style={styles.addImageIcon} testID="add-image-icon">+</Text>
                     </TouchableOpacity>
                   )}
                 </View>
               </View>
 
               {/* Tags */}
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tags ({tags.length}/5)</Text>
-                <View style={styles.tagInputContainer}>
+              <View style={styles.section} testID="tags-section">
+                <Text style={styles.sectionTitle} testID="tags-title">Tags ({tags.length}/5)</Text>
+                <View style={styles.tagInputContainer} testID="tag-input-container">
                   <TextInput
                     style={styles.tagInput}
                     placeholder="Add a tag..."
@@ -516,26 +522,29 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                     onChangeText={setTagInput}
                     onSubmitEditing={handleAddTag}
                     maxLength={20}
+                    testID="tag-input"
                   />
                   <TouchableOpacity
                     style={[styles.addTagButton, { opacity: tagInput.trim() ? 1 : 0.5 }]}
                     onPress={handleAddTag}
                     disabled={!tagInput.trim()}
+                    testID="add-tag-button"
                   >
-                    <Text style={styles.addTagButtonText}>Add</Text>
+                    <Text style={styles.addTagButtonText} testID="add-tag-text">Add</Text>
                   </TouchableOpacity>
                 </View>
                 
                 {tags.length > 0 && (
-                  <View style={styles.tagsContainer}>
+                  <View style={styles.tagsContainer} testID="tags-container">
                     {tags.map((tag, index) => (
-                      <View key={index} style={styles.tag}>
-                        <Text style={styles.tagText}>#{tag}</Text>
+                      <View key={index} style={styles.tag} testID={`tag-${index}`}>
+                        <Text style={styles.tagText} testID={`tag-text-${index}`}>#{tag}</Text>
                         <TouchableOpacity
                           style={styles.removeTagButton}
                           onPress={() => handleRemoveTag(tag)}
+                          testID={`remove-tag-${index}`}
                         >
-                          <Text style={styles.removeTagText}>×</Text>
+                          <Text style={styles.removeTagText} testID={`remove-tag-text-${index}`}>×</Text>
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -545,13 +554,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             </ScrollView>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={styles.footer} testID="modal-footer">
               <Button
                 title={isSubmitting ? "Sharing..." : "Share Post"}
                 onPress={handleSubmit}
                 type="primary"
                 disabled={!content.trim() || isSubmitting || loading}
                 style={styles.submitButton}
+                testID="submit-button"
               />
             </View>
           </KeyboardAvoidingView>
@@ -564,6 +574,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         onClose={() => setShowCamera(false)}
         onCapture={handleCameraResult}
         title="Add Photo to Post"
+        testID="camera-modal"
       />
     </>
   );

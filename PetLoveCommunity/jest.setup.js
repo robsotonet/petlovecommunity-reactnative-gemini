@@ -63,8 +63,12 @@ jest.mock('react-native', () => {
     TextInput: 'TextInput',
     ScrollView: 'ScrollView',
     SafeAreaView: 'SafeAreaView',
+    KeyboardAvoidingView: 'KeyboardAvoidingView',
     Image: 'Image',
-    Modal: 'Modal',
+    Modal: ({ visible, children, testID, ...props }) => {
+      const React = require('react');
+      return visible ? React.createElement('View', { testID, ...props }, children) : null;
+    },
   };
 });
 

@@ -230,52 +230,53 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   });
 
   return (
-    <View style={styles.container}>
-      {isReply && <View style={styles.replyIndicator} />}
+    <View style={styles.container} testID={`comment-card-${comment.id}`}>
+      {isReply && <View style={styles.replyIndicator} testID={`reply-indicator-${comment.id}`} />}
       
-      <View style={styles.commentContainer}>
+      <View style={styles.commentContainer} testID={`comment-container-${comment.id}`}>
         {/* Avatar */}
-        <TouchableOpacity onPress={handleAuthorPress}>
+        <TouchableOpacity onPress={handleAuthorPress} testID={`author-avatar-${comment.id}`}>
           {comment.author.avatar ? (
-            <Image source={{ uri: comment.author.avatar }} style={styles.avatar} />
+            <Image source={{ uri: comment.author.avatar }} style={styles.avatar} testID={`avatar-image-${comment.id}`} />
           ) : (
-            <View style={styles.avatar} />
+            <View style={styles.avatar} testID={`avatar-placeholder-${comment.id}`} />
           )}
         </TouchableOpacity>
 
         {/* Content */}
-        <View style={styles.contentContainer}>
-          <View style={styles.bubble}>
+        <View style={styles.contentContainer} testID={`content-container-${comment.id}`}>
+          <View style={styles.bubble} testID={`comment-bubble-${comment.id}`}>
             {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={handleAuthorPress}>
-                <Text style={styles.authorName}>{comment.author.name}</Text>
+            <View style={styles.header} testID={`comment-header-${comment.id}`}>
+              <TouchableOpacity onPress={handleAuthorPress} testID={`author-name-button-${comment.id}`}>
+                <Text style={styles.authorName} testID={`author-name-${comment.id}`}>{comment.author.name}</Text>
               </TouchableOpacity>
-              {comment.author.isVerified && <Text style={styles.verified}>✓</Text>}
-              <Text style={styles.timestamp}>{formatTimestamp(comment.timestamp)}</Text>
+              {comment.author.isVerified && <Text style={styles.verified} testID={`verified-badge-${comment.id}`}>✓</Text>}
+              <Text style={styles.timestamp} testID={`comment-timestamp-${comment.id}`}>{formatTimestamp(comment.timestamp)}</Text>
             </View>
 
             {/* Comment Content */}
-            <Text style={styles.content}>{comment.content}</Text>
+            <Text style={styles.content} testID={`comment-content-${comment.id}`}>{comment.content}</Text>
           </View>
 
           {/* Actions */}
           {showActions && (
-            <View style={styles.actions}>
+            <View style={styles.actions} testID={`comment-actions-${comment.id}`}>
               {/* Like Button */}
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handleLike}
                 disabled={isLiking || disabled}
+                testID={`like-button-${comment.id}`}
               >
                 <Text style={[
                   styles.likeIcon,
                   comment.isLiked && { color: colors.primary.coral }
-                ]}>
+                ]} testID={`like-icon-${comment.id}`}>
                   {comment.isLiked ? '❤️' : '🤍'}
                 </Text>
                 {comment.likes > 0 && (
-                  <Text style={[styles.actionText, comment.isLiked && styles.actionTextActive]}>
+                  <Text style={[styles.actionText, comment.isLiked && styles.actionTextActive]} testID={`like-count-${comment.id}`}>
                     {comment.likes}
                   </Text>
                 )}
@@ -287,8 +288,9 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                   style={styles.actionButton}
                   onPress={handleReply}
                   disabled={disabled}
+                  testID={`reply-button-${comment.id}`}
                 >
-                  <Text style={styles.actionText}>Reply</Text>
+                  <Text style={styles.actionText} testID={`reply-text-${comment.id}`}>Reply</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -296,7 +298,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
 
           {/* Replies */}
           {!isReply && repliesToShow && repliesToShow.length > 0 && (
-            <View style={styles.repliesContainer}>
+            <View style={styles.repliesContainer} testID={`replies-container-${comment.id}`}>
               {repliesToShow.map((reply) => (
                 <CommentCard
                   key={reply.id}
@@ -314,8 +316,9 @@ export const CommentCard: React.FC<CommentCardProps> = ({
                 <TouchableOpacity
                   style={styles.showMoreButton}
                   onPress={() => setShowAllReplies(true)}
+                  testID={`show-more-replies-${comment.id}`}
                 >
-                  <Text style={styles.showMoreText}>
+                  <Text style={styles.showMoreText} testID={`show-more-text-${comment.id}`}>
                     View {comment.replies!.length - maxReplies} more replies
                   </Text>
                 </TouchableOpacity>

@@ -189,10 +189,17 @@ describe('PostCard', () => {
     });
 
     it('renders tags when provided', () => {
-      const { getByText } = render(<PostCard {...defaultProps} />);
+      const { getByTestId } = render(<PostCard {...defaultProps} />);
       
-      expect(getByText('#dogs')).toBeTruthy();
-      expect(getByText('#cute')).toBeTruthy();
+      const tag0Text = Array.isArray(getByTestId('tag-text-0').props.children) 
+        ? getByTestId('tag-text-0').props.children.join('') 
+        : getByTestId('tag-text-0').props.children;
+      const tag1Text = Array.isArray(getByTestId('tag-text-1').props.children) 
+        ? getByTestId('tag-text-1').props.children.join('') 
+        : getByTestId('tag-text-1').props.children;
+      
+      expect(tag0Text).toBe('#dogs');
+      expect(tag1Text).toBe('#cute');
     });
 
     it('does not render tags section when no tags provided', () => {
@@ -231,11 +238,14 @@ describe('PostCard', () => {
         images: Array.from({ length: 6 }, (_, i) => `https://example.com/image${i + 1}.jpg`),
       };
       
-      const { getByText, getByTestId } = render(
+      const { getByTestId } = render(
         <PostCard {...defaultProps} post={postWithManyImages} />
       );
       
-      expect(getByText('+2')).toBeTruthy();
+      const moreImagesText = Array.isArray(getByTestId('more-images-text').props.children) 
+        ? getByTestId('more-images-text').props.children.join('') 
+        : getByTestId('more-images-text').props.children;
+      expect(moreImagesText).toBe('+2');
       expect(getByTestId('more-images-overlay')).toBeTruthy();
     });
 
@@ -327,9 +337,12 @@ describe('PostCard', () => {
     it('renders general post correctly', () => {
       const generalPost = { ...basePost, postType: 'general' as const };
       
-      const { getByText } = render(<PostCard {...defaultProps} post={generalPost} />);
+      const { getByTestId, getByText } = render(<PostCard {...defaultProps} post={generalPost} />);
       
-      expect(getByText('💬')).toBeTruthy();
+      const postTypeIcon = Array.isArray(getByTestId('post-type-icon').props.children) 
+        ? getByTestId('post-type-icon').props.children.join('') 
+        : getByTestId('post-type-icon').props.children;
+      expect(postTypeIcon).toBe('💬');
       expect(getByText('GENERAL')).toBeTruthy();
     });
   });
@@ -368,7 +381,7 @@ describe('PostCard', () => {
     it('calls onAuthorPress when author is pressed', () => {
       const { getByTestId } = render(<PostCard {...defaultProps} />);
       
-      fireEvent.press(getByTestId('author-container'));
+      fireEvent.press(getByTestId(`author-button-${basePost.id}`));
       
       expect(defaultProps.onAuthorPress).toHaveBeenCalledWith('user-1');
     });
@@ -376,7 +389,7 @@ describe('PostCard', () => {
     it('calls onImagePress when image is pressed', () => {
       const { getByTestId } = render(<PostCard {...defaultProps} />);
       
-      fireEvent.press(getByTestId('multiple-image-0'));
+      fireEvent.press(getByTestId(`image-${basePost.id}-0`));
       
       expect(defaultProps.onImagePress).toHaveBeenCalledWith(
         'https://example.com/image1.jpg',
@@ -389,7 +402,7 @@ describe('PostCard', () => {
       
       fireEvent.press(getByTestId('like-button'));
       fireEvent.press(getByTestId('comment-button'));
-      fireEvent.press(getByTestId('author-container'));
+      fireEvent.press(getByTestId(`author-button-${basePost.id}`));
       
       await waitFor(() => {
         expect(defaultProps.onLike).not.toHaveBeenCalled();
@@ -592,7 +605,7 @@ describe('PostCard', () => {
       expect(() => {
         fireEvent.press(getByTestId('like-button'));
         fireEvent.press(getByTestId('comment-button'));
-        fireEvent.press(getByTestId('author-container'));
+        fireEvent.press(getByTestId(`author-button-${basePost.id}`));
       }).not.toThrow();
     });
 
