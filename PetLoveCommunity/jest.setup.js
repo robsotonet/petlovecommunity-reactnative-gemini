@@ -12,42 +12,65 @@ jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true })),
 }));
 
-// Mock React Native modules
-jest.mock('react-native', () => ({
-  AppState: {
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    currentState: 'active',
-  },
-  Appearance: {
-    getColorScheme: jest.fn(() => 'light'),
-  },
-  useColorScheme: jest.fn(() => 'light'),
-  Dimensions: {
-    get: jest.fn(() => ({ width: 375, height: 812 })),
-  },
-  Platform: {
-    OS: 'ios',
-    Version: '14.0',
-  },
-  Alert: {
-    alert: jest.fn(),
-  },
-  NativeModules: {},
-  NativeEventEmitter: jest.fn(),
-  DeviceEventEmitter: {
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-  },
-  TouchableOpacity: 'TouchableOpacity',
-  View: 'View',
-  Text: 'Text',
-  TextInput: 'TextInput',
-  StyleSheet: {
-    create: (styles) => styles,
-    flatten: (styles) => styles,
-  },
-}));
+// Minimal React Native module overrides to avoid conflicts with React Native Testing Library
+// Add essential React Native components that components need
+jest.mock('react-native', () => {
+  const RN = jest.genMockFromModule('react-native');
+  return {
+    ...RN,
+    StyleSheet: {
+      create: (styles) => styles,
+      flatten: (styles) => styles,
+    },
+    Platform: {
+      OS: 'ios',
+      Version: '14.0',
+      select: jest.fn(obj => obj.ios || obj.default),
+    },
+    Alert: {
+      alert: jest.fn(),
+    },
+    Dimensions: {
+      get: jest.fn(() => ({ width: 375, height: 812 })),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    },
+    View: 'View',
+    Text: 'Text',
+    TouchableOpacity: 'TouchableOpacity',
+    ActivityIndicator: 'ActivityIndicator',
+    FlatList: (() => {
+      const React = require('react');
+      return React.forwardRef(({ data, renderItem, keyExtractor, ListHeaderComponent, ListEmptyComponent, ListFooterComponent, refreshControl, testID, ...props }, ref) => {
+        const items = data || [];
+        return React.createElement('View', { testID, ...props, ref }, [
+          ListHeaderComponent && React.createElement('View', { key: 'header' }, ListHeaderComponent()),
+          items.length === 0 && ListEmptyComponent ? React.createElement('View', { key: 'empty' }, ListEmptyComponent()) : null,
+          ...items.map((item, index) => 
+            React.createElement('View', { key: keyExtractor ? keyExtractor(item, index) : index }, 
+              renderItem({ item, index })
+            )
+          ),
+          ListFooterComponent && React.createElement('View', { key: 'footer' }, ListFooterComponent()),
+          refreshControl && React.createElement('View', { key: 'refresh-control' }, refreshControl)
+        ].filter(Boolean));
+      });
+    })(),
+    RefreshControl: ({ testID, ...props }) => {
+      const React = require('react');
+      return React.createElement('View', { testID, ...props });
+    },
+    TextInput: 'TextInput',
+    ScrollView: 'ScrollView',
+    SafeAreaView: 'SafeAreaView',
+    KeyboardAvoidingView: 'KeyboardAvoidingView',
+    Image: 'Image',
+    Modal: ({ visible, children, testID, ...props }) => {
+      const React = require('react');
+      return visible ? React.createElement('View', { testID, ...props }, children) : null;
+    },
+  };
+});
 
 // Mock React Navigation
 jest.mock('@react-navigation/native', () => ({

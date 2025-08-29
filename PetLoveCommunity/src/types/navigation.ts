@@ -3,6 +3,7 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
+import type { AppointmentType } from '../services/calendarService';
 
 // Define the parameter list for all screens in the app
 export type RootStackParamList = {
@@ -18,6 +19,26 @@ export type RootStackParamList = {
   };
   AdoptionApplication: {
     petId: string;
+  };
+  // Calendar & Appointment screens
+  AppointmentScheduler: {
+    petId?: string;
+    petName?: string;
+    shelterId: string;
+    shelterName: string;
+    shelterContact: {
+      name: string;
+      phone: string;
+      email: string;
+    };
+    adopterId: string;
+    appointmentType: AppointmentType;
+    minDate?: string;
+    maxDate?: string;
+  };
+  MyAppointments: undefined;
+  AppointmentDetails: {
+    appointmentId: string;
   };
   // Add more screens as they are implemented
 };
@@ -41,6 +62,16 @@ export type PetGalleryRouteProp = RootStackRouteProp<'PetGallery'>;
 
 export type AdoptionApplicationNavigationProp = RootStackNavigationProp<'AdoptionApplication'>;
 export type AdoptionApplicationRouteProp = RootStackRouteProp<'AdoptionApplication'>;
+
+// Calendar & Appointment screen navigation prop types
+export type AppointmentSchedulerNavigationProp = RootStackNavigationProp<'AppointmentScheduler'>;
+export type AppointmentSchedulerRouteProp = RootStackRouteProp<'AppointmentScheduler'>;
+
+export type MyAppointmentsNavigationProp = RootStackNavigationProp<'MyAppointments'>;
+export type MyAppointmentsRouteProp = RootStackRouteProp<'MyAppointments'>;
+
+export type AppointmentDetailsNavigationProp = RootStackNavigationProp<'AppointmentDetails'>;
+export type AppointmentDetailsRouteProp = RootStackRouteProp<'AppointmentDetails'>;
 
 // Generic screen props interface
 export interface ScreenProps<T extends keyof RootStackParamList> {

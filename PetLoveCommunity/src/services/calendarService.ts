@@ -1,8 +1,10 @@
 // Pet Love Community - Calendar Service
 // Native calendar integration for appointment scheduling with shelter visits, meet-and-greets, and adoption events
 
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { check, request, PERMISSIONS, RESULTS, Permission } from 'react-native-permissions';
+import RNCalendarEvents, { Calendar } from 'react-native-calendar-events';
 import correlationIdService from './correlationIdService';
 import adoptionAnalyticsService from './adoptionAnalyticsService';
 
@@ -51,6 +53,7 @@ export interface CalendarEvent {
   requirements?: string[];
   notes?: string;
   correlationId: string;
+  nativeEventId?: string; // ID from the native calendar system
 }
 
 export interface TimeSlot {
@@ -93,6 +96,7 @@ class CalendarService {
   private hasCalendarPermission = false;
   private cachedEvents: CalendarEvent[] = [];
   private shelterAvailability: Record<string, ShelterAvailability> = {};
+  private defaultCalendar: Calendar | null = null;
 
   private readonly STORAGE_KEYS = {
     CACHED_EVENTS: '@PetLoveCommunity:calendar_events',
@@ -125,32 +129,67 @@ class CalendarService {
 
   private async requestCalendarPermissions(): Promise<void> {
     try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.READ_CALENDAR,
-          PermissionsAndroid.PERMISSIONS.WRITE_CALENDAR,
-        ]);
+      // Get the appropriate calendar permission for the platform
+      const calendarPermission = Platform.OS === 'ios' 
+        ? PERMISSIONS.IOS.CALENDARS 
+        : PERMISSIONS.ANDROID.READ_CALENDAR;
+      
+      const writeCalendarPermission = Platform.OS === 'android' 
+        ? PERMISSIONS.ANDROID.WRITE_CALENDAR 
+        : null;
 
-        this.hasCalendarPermission = 
-          granted[PermissionsAndroid.PERMISSIONS.READ_CALENDAR] === 'granted' &&
-          granted[PermissionsAndroid.PERMISSIONS.WRITE_CALENDAR] === 'granted';
-      } else {
-        // iOS permissions would be handled by react-native-calendar-events
-        // For now, we'll assume permission is granted
-        this.hasCalendarPermission = true;
+      // Check current permission status
+      const readResult = await check(calendarPermission);
+      let writeResult = RESULTS.GRANTED; // iOS handles both read/write with single permission
+      
+      if (writeCalendarPermission) {
+        writeResult = await check(writeCalendarPermission);
       }
 
-      if (!this.hasCalendarPermission) {
-        Alert.alert(
-          'Calendar Permission Required',
-          'To schedule appointments and reminders, please allow calendar access in your device settings.',
-          [{ text: 'OK' }]
-        );
+      // Request permissions if not granted
+      if (readResult !== RESULTS.GRANTED) {
+        const readRequestResult = await request(calendarPermission);
+        if (readRequestResult !== RESULTS.GRANTED) {
+          this.hasCalendarPermission = false;
+          this.showPermissionAlert();
+          return;
+        }
       }
+
+      if (writeCalendarPermission && writeResult !== RESULTS.GRANTED) {
+        const writeRequestResult = await request(writeCalendarPermission);
+        if (writeRequestResult !== RESULTS.GRANTED) {
+          this.hasCalendarPermission = false;
+          this.showPermissionAlert();
+          return;
+        }
+      }
+
+      this.hasCalendarPermission = true;
+      console.log('Calendar permissions granted successfully');
     } catch (error) {
       console.error('Failed to request calendar permissions:', error);
       this.hasCalendarPermission = false;
+      this.showPermissionAlert();
     }
+  }
+
+  private showPermissionAlert(): void {
+    Alert.alert(
+      'Calendar Permission Required',
+      'To schedule appointments and reminders, please allow calendar access in your device settings.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Open Settings', 
+          onPress: () => {
+            // Note: Opening settings would require additional package like react-native-settings
+            // For now, we'll just show the message
+            console.log('User should manually enable calendar permissions in device settings');
+          }
+        }
+      ]
+    );
   }
 
   private async loadCachedData(): Promise<void> {
@@ -195,11 +234,29 @@ class CalendarService {
 
   private async initializeNativeCalendar(): Promise<void> {
     try {
-      // This would use react-native-calendar-events or similar
-      // For now, we'll simulate the integration
-      console.log('Native calendar integration initialized');
+      if (!this.hasCalendarPermission) {
+        console.log('Calendar permission not granted, skipping native calendar initialization');
+        return;
+      }
+
+      // Fetch available calendars
+      const calendars = await RNCalendarEvents.findCalendars();
+      
+      // Find the default calendar (usually the first writable one)
+      this.defaultCalendar = calendars.find(cal => 
+        cal.allowsModifications !== false && 
+        (cal.type === 'local' || cal.type === 'calDAV' || cal.type === 'iCloud')
+      ) || calendars[0] || null;
+
+      if (!this.defaultCalendar) {
+        console.warn('No suitable calendar found for Pet Love Community appointments');
+        return;
+      }
+
+      console.log(`Native calendar integration initialized with calendar: ${this.defaultCalendar.title}`);
     } catch (error) {
       console.error('Failed to initialize native calendar:', error);
+      this.defaultCalendar = null;
     }
   }
 
@@ -304,8 +361,11 @@ class CalendarService {
 
   private async addToNativeCalendar(event: CalendarEvent): Promise<void> {
     try {
-      // This would use react-native-calendar-events
-      // Simulated implementation
+      if (!this.defaultCalendar || !this.hasCalendarPermission) {
+        console.log('No calendar available or permission not granted, skipping native calendar event creation');
+        return;
+      }
+
       console.log(`Adding event to native calendar: ${event.title}`);
       
       const nativeEvent = {
@@ -314,15 +374,22 @@ class CalendarService {
         startDate: event.startDate.toISOString(),
         endDate: event.endDate.toISOString(),
         location: event.location,
-        allDay: event.allDay,
+        allDay: event.allDay || false,
+        calendarId: this.defaultCalendar.id,
         alarms: event.reminders.map(reminder => ({
           date: new Date(event.startDate.getTime() - reminder.minutes * 60000).toISOString()
         })),
+        notes: `Pet Love Community appointment\nCorrelation ID: ${event.correlationId}`,
       };
 
-      // await RNCalendarEvents.saveEvent(event.title, nativeEvent);
+      const nativeEventId = await RNCalendarEvents.saveEvent(event.title, nativeEvent);
+      console.log(`Event added to native calendar with ID: ${nativeEventId}`);
+      
+      // Store the native event ID for future reference
+      event.nativeEventId = nativeEventId;
     } catch (error) {
       console.error('Failed to add event to native calendar:', error);
+      // Don't throw error - we want the appointment to be saved even if native calendar fails
     }
   }
 
@@ -504,11 +571,24 @@ class CalendarService {
 
   private async removeFromNativeCalendar(eventId: string): Promise<void> {
     try {
-      // This would use react-native-calendar-events
-      console.log(`Removing event from native calendar: ${eventId}`);
-      // await RNCalendarEvents.removeEvent(eventId);
+      if (!this.hasCalendarPermission) {
+        console.log('No calendar permission, skipping native calendar event removal');
+        return;
+      }
+
+      // Find the event to get its native event ID
+      const event = this.cachedEvents.find(e => e.id === eventId);
+      if (!event || !event.nativeEventId) {
+        console.log(`No native event ID found for event: ${eventId}`);
+        return;
+      }
+
+      console.log(`Removing event from native calendar: ${eventId} (native ID: ${event.nativeEventId})`);
+      await RNCalendarEvents.removeEvent(event.nativeEventId);
+      console.log(`Event removed from native calendar successfully`);
     } catch (error) {
       console.error('Failed to remove event from native calendar:', error);
+      // Don't throw error - we want the appointment cancellation to work even if native calendar fails
     }
   }
 
@@ -541,10 +621,39 @@ class CalendarService {
 
   private async updateNativeCalendarEvent(event: CalendarEvent): Promise<void> {
     try {
-      // This would update the native calendar event
-      console.log(`Updating native calendar event: ${event.id}`);
+      if (!this.hasCalendarPermission || !this.defaultCalendar) {
+        console.log('No calendar permission or calendar available, skipping native calendar update');
+        return;
+      }
+
+      if (!event.nativeEventId) {
+        console.log(`No native event ID for event ${event.id}, creating new native event`);
+        await this.addToNativeCalendar(event);
+        return;
+      }
+
+      console.log(`Updating native calendar event: ${event.id} (native ID: ${event.nativeEventId})`);
+
+      const updatedNativeEvent = {
+        id: event.nativeEventId,
+        title: event.title,
+        description: event.description,
+        startDate: event.startDate.toISOString(),
+        endDate: event.endDate.toISOString(),
+        location: event.location,
+        allDay: event.allDay || false,
+        calendarId: this.defaultCalendar.id,
+        alarms: event.reminders.map(reminder => ({
+          date: new Date(event.startDate.getTime() - reminder.minutes * 60000).toISOString()
+        })),
+        notes: `Pet Love Community appointment\nCorrelation ID: ${event.correlationId}\nStatus: ${event.status}`,
+      };
+
+      await RNCalendarEvents.saveEvent(event.title, updatedNativeEvent);
+      console.log(`Native calendar event updated successfully`);
     } catch (error) {
       console.error('Failed to update native calendar event:', error);
+      // Don't throw error - we want the appointment update to work even if native calendar fails
     }
   }
 
