@@ -7,7 +7,7 @@ import { store } from '../store';
 import { addNotifications, setOnlineStatus } from '../features/social/socialSlice';
 import { socialApi } from './socialApi';
 import correlationIdService from './correlationIdService';
-import { loggingService } from './loggingService';
+import loggingService from './loggingService';
 import DeviceInfo from 'react-native-device-info';
 import NetInfo from '@react-native-community/netinfo';
 

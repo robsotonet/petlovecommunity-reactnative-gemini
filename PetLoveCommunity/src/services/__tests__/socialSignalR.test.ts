@@ -20,7 +20,7 @@ import { store } from '../../store';
 import { socialApi } from '../socialApi';
 import { addNotifications, setOnlineStatus } from '../../features/social/socialSlice';
 import correlationIdService from '../correlationIdService';
-import { loggingService } from '../loggingService';
+import loggingService from '../loggingService';
 import DeviceInfo from 'react-native-device-info';
 
 // Mock dependencies

@@ -15,7 +15,7 @@ jest.mock('react-redux', () => ({
 import { socialApi } from '../socialApi';
 import { configureStore } from '@reduxjs/toolkit';
 import correlationIdService from '../correlationIdService';
-import { loggingService } from '../loggingService';
+import loggingService from '../loggingService';
 import DeviceInfo from 'react-native-device-info';
 import { Platform } from 'react-native';
 
@@ -34,7 +34,17 @@ jest.mock('react-native', () => ({
 }));
 
 // Mock fetch for testing
-global.fetch = jest.fn();
+global.fetch = jest.fn(() => {
+  const mockResponse = {
+    ok: true,
+    json: jest.fn().mockResolvedValue({}),
+    text: jest.fn().mockResolvedValue(''),
+    clone: jest.fn().mockReturnThis(),
+    status: 200,
+    statusText: 'OK',
+  };
+  return Promise.resolve(mockResponse);
+});
 
 describe('socialApi', () => {
   let store: any;

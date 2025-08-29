@@ -4,7 +4,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '../store';
 import correlationIdService from './correlationIdService';
-import { loggingService } from './loggingService';
+import loggingService from './loggingService';
 import DeviceInfo from 'react-native-device-info';
 import { Platform } from 'react-native';
 
